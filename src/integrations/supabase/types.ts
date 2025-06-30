@@ -9,7 +9,187 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          created_at: string | null
+          doctor_id: string | null
+          doctor_notes: string | null
+          duration_minutes: number | null
+          id: string
+          notes: string | null
+          patient_id: string | null
+          patient_notes: string | null
+          status: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          created_at?: string | null
+          doctor_id?: string | null
+          doctor_notes?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          patient_notes?: string | null
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          created_at?: string | null
+          doctor_id?: string | null
+          doctor_notes?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          patient_notes?: string | null
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_availability: {
+        Row: {
+          created_at: string | null
+          day_of_week: number
+          doctor_id: string | null
+          end_time: string
+          id: string
+          is_available: boolean | null
+          start_time: string
+        }
+        Insert: {
+          created_at?: string | null
+          day_of_week: number
+          doctor_id?: string | null
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          start_time: string
+        }
+        Update: {
+          created_at?: string | null
+          day_of_week?: number
+          doctor_id?: string | null
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctors: {
+        Row: {
+          bio: string | null
+          consultation_fee: number | null
+          created_at: string | null
+          education: string | null
+          id: string
+          languages: string[] | null
+          license_number: string | null
+          specialty: string
+          updated_at: string | null
+          years_experience: number | null
+        }
+        Insert: {
+          bio?: string | null
+          consultation_fee?: number | null
+          created_at?: string | null
+          education?: string | null
+          id: string
+          languages?: string[] | null
+          license_number?: string | null
+          specialty: string
+          updated_at?: string | null
+          years_experience?: number | null
+        }
+        Update: {
+          bio?: string | null
+          consultation_fee?: number | null
+          created_at?: string | null
+          education?: string | null
+          id?: string
+          languages?: string[] | null
+          license_number?: string | null
+          specialty?: string
+          updated_at?: string | null
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctors_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          phone?: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +198,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      appointment_status: "scheduled" | "confirmed" | "cancelled" | "completed"
+      user_role: "doctor" | "patient"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +314,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      appointment_status: ["scheduled", "confirmed", "cancelled", "completed"],
+      user_role: ["doctor", "patient"],
+    },
   },
 } as const

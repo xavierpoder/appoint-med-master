@@ -1,132 +1,172 @@
 
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { User, Calendar } from "lucide-react";
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Stethoscope, Users, UserCheck, Calendar, Shield, Clock } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, userRole, loading } = useAuth();
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-center">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
+  // Redirect authenticated users to their respective dashboards
+  useEffect(() => {
+    if (!loading && user && userRole) {
+      if (userRole === 'doctor') {
+        navigate('/doctor');
+      } else if (userRole === 'patient') {
+        navigate('/patient');
+      }
+    }
+  }, [user, userRole, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Show landing page for non-authenticated users
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        {/* Hero Section */}
+        <div className="container mx-auto px-4 pt-20 pb-16">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="flex items-center justify-center mb-6">
+              <Stethoscope className="h-16 w-16 text-blue-600 mr-4" />
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-                  Clínica Master
+                <h1 className="text-5xl font-bold text-gray-900 mb-2">
+                  Clínica Master v1.1
                 </h1>
-                <p className="text-sm text-gray-500">v1.1</p>
+                <p className="text-xl text-blue-600 font-medium">
+                  Sistema de Gestión de Citas Médicas
+                </p>
               </div>
             </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Sistema de Gestión de Citas Médicas
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Plataforma integral para doctores y pacientes que facilita la programación, 
-              gestión y seguimiento de citas médicas.
+            
+            <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto">
+              Plataforma integral para la gestión eficiente de citas médicas entre 
+              doctores y pacientes. Simplificamos el proceso de reservas y seguimiento.
             </p>
-          </div>
 
-          {/* Role Selection Cards */}
-          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            {/* Doctor Card */}
-            <Card className="p-8 hover:shadow-xl transition-all duration-300 border-2 hover:border-blue-200 group cursor-pointer">
-              <div className="text-center space-y-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                  <User className="h-10 w-10 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Soy Doctor</h3>
-                  <p className="text-gray-600 mb-6">
-                    Gestiona tu agenda, programa citas y administra tus pacientes
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+              <Button
+                size="lg"
+                onClick={() => navigate('/auth')}
+                className="medical-gradient text-white px-8 py-3 text-lg font-medium hover:scale-105 transition-transform"
+              >
+                <UserCheck className="h-5 w-5 mr-2" />
+                Iniciar Sesión
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/auth')}
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 text-lg font-medium"
+              >
+                <Users className="h-5 w-5 mr-2" />
+                Registrarse
+              </Button>
+            </div>
+
+            {/* Role Selection Cards */}
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              <Card className="medical-shadow hover:scale-105 transition-transform cursor-pointer border-2 hover:border-blue-200">
+                <CardContent className="p-8 text-center">
+                  <Stethoscope className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    Soy Doctor
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Gestiona tu agenda, consulta citas programadas y administra 
+                    la información de tus pacientes.
                   </p>
-                  <ul className="text-sm text-gray-500 space-y-2 mb-6">
-                    <li>• Ver agenda diaria</li>
-                    <li>• Gestionar citas</li>
-                    <li>• Notificaciones automatizadas</li>
-                    <li>• Historial de pacientes</li>
-                  </ul>
-                </div>
-                <Button 
-                  onClick={() => navigate('/doctor')}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"
-                >
-                  Acceder como Doctor
-                </Button>
-              </div>
-            </Card>
+                  <Button 
+                    onClick={() => navigate('/auth')}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Acceso para Doctores
+                  </Button>
+                </CardContent>
+              </Card>
 
-            {/* Patient Card */}
-            <Card className="p-8 hover:shadow-xl transition-all duration-300 border-2 hover:border-green-200 group cursor-pointer">
-              <div className="text-center space-y-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
-                  <Calendar className="h-10 w-10 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Soy Paciente</h3>
-                  <p className="text-gray-600 mb-6">
-                    Busca doctores, programa citas y gestiona tus consultas médicas
+              <Card className="medical-shadow hover:scale-105 transition-transform cursor-pointer border-2 hover:border-green-200">
+                <CardContent className="p-8 text-center">
+                  <Users className="h-16 w-16 text-green-600 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    Soy Paciente
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Busca especialistas, agenda citas médicas y mantén 
+                    un seguimiento de tu historial médico.
                   </p>
-                  <ul className="text-sm text-gray-500 space-y-2 mb-6">
-                    <li>• Buscar por especialidad</li>
-                    <li>• Programar citas</li>
-                    <li>• Recordatorios automáticos</li>
-                    <li>• Historial médico</li>
-                  </ul>
-                </div>
-                <Button 
-                  onClick={() => navigate('/patient')}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-semibold"
-                >
-                  Acceder como Paciente
-                </Button>
-              </div>
-            </Card>
+                  <Button 
+                    onClick={() => navigate('/auth')}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    Acceso para Pacientes
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
+        </div>
 
-          {/* Features Section */}
-          <div className="mt-16">
-            <h3 className="text-2xl font-bold text-gray-900 mb-8">Características Principales</h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-6">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="h-6 w-6 text-blue-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900 mb-2">Gestión Inteligente</h4>
-                <p className="text-gray-600 text-sm">Sistema automatizado de citas con recordatorios</p>
+        {/* Features Section */}
+        <div className="bg-white py-16">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+              Características Principales
+            </h2>
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              <div className="text-center">
+                <Calendar className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Gestión de Citas
+                </h3>
+                <p className="text-gray-600">
+                  Sistema completo para programar, modificar y cancelar citas médicas.
+                </p>
               </div>
-              <div className="text-center p-6">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <User className="h-6 w-6 text-green-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900 mb-2">Perfiles Personalizados</h4>
-                <p className="text-gray-600 text-sm">Interfaces adaptadas para doctores y pacientes</p>
+              <div className="text-center">
+                <Shield className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Seguridad Total
+                </h3>
+                <p className="text-gray-600">
+                  Protección completa de datos médicos con encriptación avanzada.
+                </p>
               </div>
-              <div className="text-center p-6">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="h-6 w-6 text-purple-600" />
-                </div>
-                <h4 className="font-semibold text-gray-900 mb-2">Notificaciones</h4>
-                <p className="text-gray-600 text-sm">Recordatorios automáticos por WhatsApp</p>
+              <div className="text-center">
+                <Clock className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Recordatorios
+                </h3>
+                <p className="text-gray-600">
+                  Notificaciones automáticas por WhatsApp y confirmaciones de citas.
+                </p>
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
+    );
+  }
+
+  // Default fallback - shouldn't reach here due to useEffect redirect
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          Redirigiendo...
+        </h2>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+      </div>
     </div>
   );
 };
