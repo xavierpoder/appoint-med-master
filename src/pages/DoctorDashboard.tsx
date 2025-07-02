@@ -3,8 +3,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Clock, User, ArrowUp, ArrowDown } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, Clock, User, ArrowUp, ArrowDown, Settings } from "lucide-react";
 import { toast } from "sonner";
+import CalendarIntegration from "@/components/calendar/CalendarIntegration";
+import AvailabilityManager from "@/components/calendar/AvailabilityManager";
 
 interface Appointment {
   id: string;
@@ -144,95 +147,123 @@ const DoctorDashboard = () => {
             </Card>
           </div>
 
-          {/* Date Selector and Appointments */}
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Calendar/Date Selector */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Seleccionar Fecha</h3>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <div className="mt-6 space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Horario disponible:</span>
-                  <span className="font-medium text-gray-900">9:00 - 17:00</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Duración promedio:</span>
-                  <span className="font-medium text-gray-900">30 min</span>
+          {/* Main Content Tabs */}
+          <Tabs defaultValue="appointments" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="appointments" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Citas del Día
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Calendario
+              </TabsTrigger>
+              <TabsTrigger value="availability" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Disponibilidad
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="appointments" className="space-y-6">
+              {/* Date Selector and Appointments */}
+              <div className="grid lg:grid-cols-3 gap-8">
+                {/* Calendar/Date Selector */}
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Seleccionar Fecha</h3>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Horario disponible:</span>
+                      <span className="font-medium text-gray-900">9:00 - 17:00</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Duración promedio:</span>
+                      <span className="font-medium text-gray-900">30 min</span>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Appointments List */}
+                <div className="lg:col-span-2">
+                  <Card className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Citas del {new Date(selectedDate).toLocaleDateString('es-ES', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </h3>
+                      <Button className="bg-blue-600 hover:bg-blue-700">
+                        Nueva Cita
+                      </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {appointments.map((appointment, index) => (
+                        <div
+                          key={appointment.id}
+                          className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <div className="font-semibold text-gray-900">
+                                  {appointment.time}
+                                </div>
+                                <div className="text-lg font-medium text-gray-900">
+                                  {appointment.patientName}
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
+                                  {getStatusText(appointment.status)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600">{appointment.specialty}</p>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => moveAppointment(appointment.id, 'up')}
+                                disabled={index === 0}
+                                className="p-2"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => moveAppointment(appointment.id, 'down')}
+                                disabled={index === appointments.length - 1}
+                                className="p-2"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
                 </div>
               </div>
-            </Card>
+            </TabsContent>
 
-            {/* Appointments List */}
-            <div className="lg:col-span-2">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Citas del {new Date(selectedDate).toLocaleDateString('es-ES', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </h3>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    Nueva Cita
-                  </Button>
-                </div>
+            <TabsContent value="calendar">
+              <CalendarIntegration />
+            </TabsContent>
 
-                <div className="space-y-4">
-                  {appointments.map((appointment, index) => (
-                    <div
-                      key={appointment.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <div className="font-semibold text-gray-900">
-                              {appointment.time}
-                            </div>
-                            <div className="text-lg font-medium text-gray-900">
-                              {appointment.patientName}
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
-                              {getStatusText(appointment.status)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600">{appointment.specialty}</p>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => moveAppointment(appointment.id, 'up')}
-                            disabled={index === 0}
-                            className="p-2"
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => moveAppointment(appointment.id, 'down')}
-                            disabled={index === appointments.length - 1}
-                            className="p-2"
-                          >
-                            <ArrowDown className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          </div>
+            <TabsContent value="availability">
+              <AvailabilityManager />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
     </div>

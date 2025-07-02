@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      appointment_history: {
+        Row: {
+          appointment_id: string | null
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Update: {
+          appointment_id?: string | null
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_history_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -69,6 +114,47 @@ export type Database = {
           },
         ]
       }
+      availability_slots: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          end_time: string
+          google_event_id: string | null
+          id: string
+          is_available: boolean | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          end_time: string
+          google_event_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          end_time?: string
+          google_event_id?: string | null
+          id?: string
+          is_available?: boolean | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_slots_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_availability: {
         Row: {
           created_at: string | null
@@ -100,6 +186,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_calendars: {
+        Row: {
+          calendar_name: string
+          created_at: string
+          doctor_id: string
+          google_calendar_id: string
+          id: string
+          is_primary: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          calendar_name: string
+          created_at?: string
+          doctor_id: string
+          google_calendar_id: string
+          id?: string
+          is_primary?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          calendar_name?: string
+          created_at?: string
+          doctor_id?: string
+          google_calendar_id?: string
+          id?: string
+          is_primary?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_calendars_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
             referencedRelation: "doctors"
