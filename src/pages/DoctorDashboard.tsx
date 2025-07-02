@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Calendar, Clock, User, ArrowUp, ArrowDown, Settings } from "lucide-reac
 import { toast } from "sonner";
 import CalendarIntegration from "@/components/calendar/CalendarIntegration";
 import AvailabilityManager from "@/components/calendar/AvailabilityManager";
+import CalendarEvents from "@/components/calendar/CalendarEvents";
 
 interface Appointment {
   id: string;
@@ -256,12 +256,17 @@ const DoctorDashboard = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="calendar">
-              <CalendarIntegration />
+            <TabsContent value="calendar" className="space-y-6">
+              <div className="grid gap-6">
+                <CalendarIntegration />
+                <CalendarEvents />
+              </div>
             </TabsContent>
 
-            <TabsContent value="availability">
-              <AvailabilityManager />
+            <TabsContent value="availability" className="space-y-6">
+              <div className="grid gap-6">
+                <AvailabilityManager />
+              </div>
             </TabsContent>
           </Tabs>
         </div>

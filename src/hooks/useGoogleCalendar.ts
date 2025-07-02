@@ -26,7 +26,6 @@ export const useGoogleCalendar = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Check if doctor has Google Calendar connected
   useEffect(() => {
     if (user) {
       checkCalendarConnection();
@@ -52,12 +51,15 @@ export const useGoogleCalendar = () => {
   const connectGoogleCalendar = async () => {
     setLoading(true);
     try {
-      // Request additional Google Calendar scopes
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
-          redirectTo: `${window.location.origin}/doctor`
+          redirectTo: `${window.location.origin}/doctor`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       });
 
@@ -72,22 +74,39 @@ export const useGoogleCalendar = () => {
     }
   };
 
-  const fetchCalendarEvents = async (calendarId: string) => {
+  const callGoogleCalendarAPI = async (action: string, payload: any = {}) => {
+    const { data, error } = await supabase.functions.invoke('google-calendar', {
+      body: { action, ...payload }
+    });
+
+    if (error) throw error;
+    return data;
+  };
+
+  const fetchCalendars = async () => {
     setLoading(true);
     try {
-      // This would be implemented with the Google Calendar API
-      // For now, we'll simulate the data structure
-      const mockEvents: CalendarEvent[] = [
-        {
-          id: '1',
-          summary: 'Cita con Juan Pérez',
-          start: { dateTime: '2024-01-15T09:00:00' },
-          end: { dateTime: '2024-01-15T09:30:00' },
-          status: 'confirmed'
-        }
-      ];
+      await callGoogleCalendarAPI('list-calendars');
+      await checkCalendarConnection(); // Refresh local data
+      toast.success('Calendarios sincronizados');
+    } catch (error) {
+      console.error('Error fetching calendars:', error);
+      toast.error('Error al sincronizar calendarios');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCalendarEvents = async (calendarId: string, timeMin?: string, timeMax?: string) => {
+    setLoading(true);
+    try {
+      const data = await callGoogleCalendarAPI('list-events', {
+        calendarId,
+        timeMin,
+        timeMax
+      });
       
-      setEvents(mockEvents);
+      setEvents(data.items || []);
       toast.success('Eventos del calendario cargados');
     } catch (error) {
       console.error('Error fetching calendar events:', error);
@@ -98,22 +117,67 @@ export const useGoogleCalendar = () => {
   };
 
   const createAvailabilitySlot = async (startTime: string, endTime: string) => {
-    try {
-      const { error } = await supabase
-        .from('availability_slots')
-        .insert({
-          doctor_id: user?.id,
-          start_time: startTime,
-          end_time: endTime,
-          is_available: true
-        });
+    if (calendars.length === 0) {
+      toast.error('Primero conecta tu calendario de Google');
+      return;
+    }
 
-      if (error) throw error;
+    const primaryCalendar = calendars.find(cal => cal.is_primary) || calendars[0];
+    
+    try {
+      const event = {
+        summary: 'Disponible para citas',
+        start: { dateTime: startTime },
+        end: { dateTime: endTime },
+        description: 'Horario disponible para citas médicas',
+      };
+
+      await callGoogleCalendarAPI('create-event', {
+        calendarId: primaryCalendar.google_calendar_id,
+        event
+      });
       
-      toast.success('Horario disponible creado');
+      toast.success('Horario disponible creado en Google Calendar');
     } catch (error) {
       console.error('Error creating availability slot:', error);
       toast.error('Error al crear horario disponible');
+    }
+  };
+
+  const createAppointmentEvent = async (appointmentData: {
+    patientName: string;
+    date: string;
+    time: string;
+    duration: number;
+  }) => {
+    if (calendars.length === 0) {
+      toast.error('Primero conecta tu calendario de Google');
+      return;
+    }
+
+    const primaryCalendar = calendars.find(cal => cal.is_primary) || calendars[0];
+    const startDateTime = `${appointmentData.date}T${appointmentData.time}:00`;
+    const endTime = new Date(startDateTime);
+    endTime.setMinutes(endTime.getMinutes() + appointmentData.duration);
+    
+    try {
+      const event = {
+        summary: `Cita: ${appointmentData.patientName}`,
+        start: { dateTime: startDateTime },
+        end: { dateTime: endTime.toISOString() },
+        description: `Cita médica con ${appointmentData.patientName}`,
+      };
+
+      const result = await callGoogleCalendarAPI('create-event', {
+        calendarId: primaryCalendar.google_calendar_id,
+        event
+      });
+      
+      toast.success('Cita creada en Google Calendar');
+      return result;
+    } catch (error) {
+      console.error('Error creating appointment event:', error);
+      toast.error('Error al crear cita en Google Calendar');
     }
   };
 
@@ -123,8 +187,10 @@ export const useGoogleCalendar = () => {
     events,
     loading,
     connectGoogleCalendar,
+    fetchCalendars,
     fetchCalendarEvents,
     createAvailabilitySlot,
+    createAppointmentEvent,
     refreshConnection: checkCalendarConnection
   };
 };
