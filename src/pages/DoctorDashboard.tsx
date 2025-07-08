@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ const DoctorDashboard = () => {
             time,
             specialty,
             status,
-            patient_profiles(first_name, last_name)
+            patient_view!inner(first_name, last_name)
           `)
           .eq('doctor_id', user.id);
 
@@ -47,7 +48,7 @@ const DoctorDashboard = () => {
         } else {
           setAppointments(data.map((appt: any) => ({
             id: appt.id,
-            patientName: `${appt.patient_profiles.first_name} ${appt.patient_profiles.last_name}`,
+            patientName: `${appt.patient_view.first_name} ${appt.patient_view.last_name}`,
             time: appt.time,
             specialty: appt.specialty,
             status: appt.status,

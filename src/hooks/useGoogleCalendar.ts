@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,9 +34,9 @@ export const useGoogleCalendar = () => {
       if (user) {
         console.log("Checking Google Calendar connection for user:", user.id);
         const { data, error } = await supabase
-          .from("doctor_profiles")
+          .from("doctors")
           .select("google_calendar_access_token")
-          .eq("user_id", user.id)
+          .eq("id", user.id)
           .single();
 
         if (error) {
@@ -56,90 +57,35 @@ export const useGoogleCalendar = () => {
 
   const connectGoogleCalendar = async () => {
     console.log("Attempting to connect Google Calendar...");
-    try {
-      const { data, error } = await supabase.functions.invoke("google-calendar-auth", {
-        method: "POST",
-        body: { action: "auth" },
-      });
-
-      if (error) {
-        console.error("Error invoking google-calendar-auth for auth action:", error);
-        throw error;
-      }
-
-      if (data && data.authUrl) {
-        console.log("Redirecting to Google Auth URL:", data.authUrl);
-        window.location.href = data.authUrl;
-      } else {
-        console.error("No authUrl received from google-calendar-auth function.", data);
-        toast.error("No se pudo obtener la URL de autenticación.");
-      }
-    } catch (error) {
-      console.error("Error al conectar Google Calendar:", error);
-      toast.error("Error al conectar Google Calendar. Por favor, intente de nuevo.");
-    }
+    toast.info("Funcionalidad de Google Calendar en desarrollo. Próximamente disponible.");
   };
 
   const handleAuthCallback = async (code: string) => {
     setLoading(true);
     console.log("Handling Google Auth callback with code:", code);
-    try {
-      const { data, error } = await supabase.functions.invoke("google-calendar-auth", {
-        method: "POST",
-        body: { action: "callback", code, userId: user?.id },
-      });
-
-      if (error) {
-        console.error("Error invoking google-calendar-auth for callback action:", error);
-        throw error;
-      }
-
-      if (data && data.success) {
-        console.log("Google Calendar connected successfully.");
-        setIsConnected(true);
-        toast.success("Google Calendar conectado exitosamente.");
-        fetchCalendars();
-      } else {
-        console.error("Google Calendar connection failed. Data:", data);
-        toast.error("Fallo la conexión con Google Calendar.");
-      }
-    } catch (error) {
-      console.error("Error en el callback de autenticación:", error);
-      toast.error("Error en el callback de autenticación. Por favor, intente de nuevo.");
-    } finally {
-      setLoading(false);
-    }
+    // TODO: Implement auth callback handling
+    setLoading(false);
   };
 
   const fetchCalendars = async () => {
     setLoading(true);
     console.log("Fetching Google Calendars...");
     try {
-      const { data, error } = await supabase.functions.invoke("google-calendar-api", {
-        method: "POST",
-        body: { action: "listCalendars", userId: user?.id },
-      });
+      const { data, error } = await supabase
+        .from("doctor_calendars")
+        .select("*")
+        .eq("doctor_id", user?.id);
 
       if (error) {
-        console.error("Error invoking google-calendar-api for listCalendars action:", error);
-        throw error;
-      }
-
-      if (data && data.calendars) {
-        console.log("Calendars fetched successfully:", data.calendars);
-        setCalendars(data.calendars.map((cal: any) => ({
-          id: cal.id,
-          google_calendar_id: cal.id,
-          calendar_name: cal.summary,
-          is_primary: cal.primary || false,
-        })));
+        console.error("Error fetching calendars:", error);
+        setCalendars([]);
       } else {
-        console.warn("No calendars received or data is empty.", data);
-        toast.error("No se pudieron cargar los calendarios.");
+        console.log("Calendars fetched successfully:", data);
+        setCalendars(data || []);
       }
     } catch (error) {
       console.error("Error al obtener calendarios:", error);
-      toast.error("Error al obtener calendarios. Por favor, intente de nuevo.");
+      setCalendars([]);
     } finally {
       setLoading(false);
     }
@@ -147,54 +93,30 @@ export const useGoogleCalendar = () => {
 
   const createAvailabilitySlot = async (date: string, startTime: string, endTime: string) => {
     setLoading(true);
-    console.log(`Attempting to create availability slot for ${date} from ${startTime} to ${endTime}`);
+    console.log(`Creating availability slot for ${date} from ${startTime} to ${endTime}`);
     try {
-      const primaryCalendar = calendars.find(cal => cal.is_primary);
-      if (!primaryCalendar) {
-        console.error("No primary calendar found for the user.", calendars);
-        toast.error("No se encontró un calendario principal para crear el horario.");
-        setLoading(false);
-        return;
-      }
-      console.log("Using primary calendar:", primaryCalendar);
-
       const startDateTime = `${date}T${startTime}:00`;
       const endDateTime = `${date}T${endTime}:00`;
-      console.log("Start DateTime:", startDateTime, "End DateTime:", endDateTime);
 
-      const eventBody = {
-        summary: "Horario Disponible",
-        start: { dateTime: startDateTime, timeZone: TIMEZONE }, 
-        end: { dateTime: endDateTime, timeZone: TIMEZONE },
-      };
-      console.log("Event body to be sent:", eventBody);
-
-      const { data, error } = await supabase.functions.invoke("google-calendar-api", {
-        method: "POST",
-        body: {
-          action: "createEvent",
-          userId: user?.id,
-          calendarId: primaryCalendar.google_calendar_id,
-          event: eventBody,
-        },
-      });
+      const { data, error } = await supabase
+        .from("availability_slots")
+        .insert({
+          doctor_id: user?.id,
+          start_time: startDateTime,
+          end_time: endDateTime,
+          is_available: true,
+        });
 
       if (error) {
-        console.error("Error invoking google-calendar-api for createEvent action:", error);
-        throw error;
-      }
-
-      if (data && data.event) {
-        console.log("Availability slot created successfully:", data.event);
-        toast.success("Horario de disponibilidad creado en Google Calendar.");
-        fetchCalendarEvents(date); 
+        console.error("Error creating availability slot:", error);
+        toast.error("Error al crear el horario de disponibilidad.");
       } else {
-        console.error("Failed to create availability slot. Data:", data);
-        toast.error("No se pudo crear el horario de disponibilidad.");
+        console.log("Availability slot created successfully:", data);
+        toast.success("Horario de disponibilidad creado exitosamente.");
       }
     } catch (error) {
       console.error("Error al crear horario de disponibilidad:", error);
-      toast.error("Error al crear el horario de disponibilidad. Por favor, intente de nuevo.");
+      toast.error("Error al crear el horario de disponibilidad.");
     } finally {
       setLoading(false);
     }
@@ -202,53 +124,34 @@ export const useGoogleCalendar = () => {
 
   const fetchCalendarEvents = async (date: string) => {
     setLoading(true);
-    console.log("Fetching Google Calendar events for date:", date);
+    console.log("Fetching calendar events for date:", date);
     try {
-      const primaryCalendar = calendars.find(cal => cal.is_primary);
-      if (!primaryCalendar) {
-        console.warn("No primary calendar found, cannot fetch events.");
-        setEvents([]);
-        setLoading(false);
-        return;
-      }
-      console.log("Using primary calendar for fetching events:", primaryCalendar);
+      const startOfDay = `${date}T00:00:00`;
+      const endOfDay = `${date}T23:59:59`;
 
-      const timeMin = `${date}T00:00:00-05:00`; 
-      const timeMax = `${date}T23:59:59-05:00`;
-      console.log("Time range for events: ", timeMin, "to", timeMax);
-
-      const { data, error } = await supabase.functions.invoke("google-calendar-api", {
-        method: "POST",
-        body: {
-          action: "listEvents",
-          userId: user?.id,
-          calendarId: primaryCalendar.google_calendar_id,
-          timeMin,
-          timeMax,
-        },
-      });
+      const { data, error } = await supabase
+        .from("availability_slots")
+        .select("*")
+        .eq("doctor_id", user?.id)
+        .gte("start_time", startOfDay)
+        .lte("end_time", endOfDay);
 
       if (error) {
-        console.error("Error invoking google-calendar-api for listEvents action:", error);
-        throw error;
-      }
-
-      if (data && data.events) {
-        console.log("Events fetched successfully:", data.events);
-        setEvents(data.events.map((event: any) => ({
-          id: event.id,
-          summary: event.summary,
-          start: event.start,
-          end: event.end,
-          status: event.status,
-        })));
-      } else {
-        console.warn("No events received or data is empty.", data);
+        console.error("Error fetching availability slots:", error);
         setEvents([]);
+      } else {
+        console.log("Availability slots fetched successfully:", data);
+        const mappedEvents = data.map((slot: any) => ({
+          id: slot.id,
+          summary: slot.is_available ? "Disponible" : "Ocupado",
+          start: { dateTime: slot.start_time, date: slot.start_time.split('T')[0] },
+          end: { dateTime: slot.end_time, date: slot.end_time.split('T')[0] },
+          status: slot.is_available ? "available" : "busy",
+        }));
+        setEvents(mappedEvents);
       }
     } catch (error) {
       console.error("Error al obtener eventos del calendario:", error);
-      toast.error("Error al cargar los eventos del calendario. Por favor, intente de nuevo.");
       setEvents([]);
     } finally {
       setLoading(false);
@@ -266,5 +169,3 @@ export const useGoogleCalendar = () => {
     fetchCalendarEvents,
   };
 };
-
-
