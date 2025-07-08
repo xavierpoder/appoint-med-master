@@ -23,10 +23,7 @@ const AvailabilityManager = () => {
 
     setLoading(true);
     try {
-      const startDateTime = `${date}T${startTime}:00`;
-      const endDateTime = `${date}T${endTime}:00`;
-      
-      await createAvailabilitySlot(startDateTime, endDateTime);
+      await createAvailabilitySlot(date, startTime, endTime);
       
       // Reset form
       setDate('');
