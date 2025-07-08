@@ -94,9 +94,20 @@ export const useGoogleCalendar = () => {
   const createAvailabilitySlot = async (date: string, startTime: string, endTime: string) => {
     setLoading(true);
     console.log(`Creating availability slot for ${date} from ${startTime} to ${endTime}`);
+    
+    // Validate inputs
+    if (!date || !startTime || !endTime) {
+      console.error("Missing required parameters for availability slot");
+      toast.error("Todos los campos son requeridos");
+      setLoading(false);
+      return;
+    }
+    
     try {
       const startDateTime = `${date}T${startTime}:00`;
       const endDateTime = `${date}T${endTime}:00`;
+
+      console.log(`Creating slot from ${startDateTime} to ${endDateTime}`);
 
       const { data, error } = await supabase
         .from("availability_slots")
