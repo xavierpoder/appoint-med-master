@@ -33,21 +33,26 @@ export const useGoogleCalendar = () => {
     const checkConnection = async () => {
       if (user) {
         console.log("Checking Google Calendar connection for user:", user.id);
-        const { data, error } = await supabase
-          .from("doctors")
-          .select("google_calendar_access_token")
-          .eq("id", user.id)
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from("doctors")
+            .select("google_calendar_access_token")
+            .eq("id", user.id)
+            .maybeSingle();
 
-        if (error) {
-          console.error("Error checking connection:", error);
-          setIsConnected(false);
-        } else if (data && data.google_calendar_access_token) {
-          console.log("User is connected to Google Calendar.");
-          setIsConnected(true);
-          fetchCalendars();
-        } else {
-          console.log("User is not connected to Google Calendar.");
+          if (error) {
+            console.error("Error checking connection:", error);
+            setIsConnected(false);
+          } else if (data?.google_calendar_access_token) {
+            console.log("User is connected to Google Calendar.");
+            setIsConnected(true);
+            fetchCalendars();
+          } else {
+            console.log("User is not connected to Google Calendar.");
+            setIsConnected(false);
+          }
+        } catch (error) {
+          console.error("Error checking Google Calendar connection:", error);
           setIsConnected(false);
         }
       }
@@ -68,13 +73,15 @@ export const useGoogleCalendar = () => {
   };
 
   const fetchCalendars = async () => {
+    if (!user) return;
+    
     setLoading(true);
     console.log("Fetching Google Calendars...");
     try {
       const { data, error } = await supabase
         .from("doctor_calendars")
         .select("*")
-        .eq("doctor_id", user?.id);
+        .eq("doctor_id", user.id);
 
       if (error) {
         console.error("Error fetching calendars:", error);
@@ -92,48 +99,102 @@ export const useGoogleCalendar = () => {
   };
 
   const createAvailabilitySlot = async (date: string, startTime: string, endTime: string) => {
-    setLoading(true);
-    console.log(`Creating availability slot for ${date} from ${startTime} to ${endTime}`);
-    
+    if (!user) {
+      toast.error("Usuario no autenticado");
+      return;
+    }
+
     // Validate inputs
     if (!date || !startTime || !endTime) {
       console.error("Missing required parameters for availability slot");
       toast.error("Todos los campos son requeridos");
-      setLoading(false);
       return;
     }
+
+    // Validate time format
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+      toast.error("Formato de hora inválido. Use formato HH:MM");
+      return;
+    }
+
+    // Validate that end time is after start time
+    const startDateTime = new Date(`${date}T${startTime}:00`);
+    const endDateTime = new Date(`${date}T${endTime}:00`);
+    
+    if (endDateTime <= startDateTime) {
+      toast.error("La hora de fin debe ser posterior a la hora de inicio");
+      return;
+    }
+
+    // Validate that the date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const slotDate = new Date(date);
+    
+    if (slotDate < today) {
+      toast.error("No se pueden crear horarios en fechas pasadas");
+      return;
+    }
+
+    setLoading(true);
+    console.log(`Creating availability slot for ${date} from ${startTime} to ${endTime}`);
     
     try {
-      const startDateTime = `${date}T${startTime}:00`;
-      const endDateTime = `${date}T${endTime}:00`;
+      const startDateTimeString = `${date}T${startTime}:00`;
+      const endDateTimeString = `${date}T${endTime}:00`;
 
-      console.log(`Creating slot from ${startDateTime} to ${endDateTime}`);
+      console.log(`Creating slot from ${startDateTimeString} to ${endDateTimeString}`);
+
+      // Check if there's already a slot for this time
+      const { data: existingSlots, error: checkError } = await supabase
+        .from("availability_slots")
+        .select("*")
+        .eq("doctor_id", user.id)
+        .eq("start_time", startDateTimeString)
+        .eq("end_time", endDateTimeString);
+
+      if (checkError) {
+        console.error("Error checking existing slots:", checkError);
+        toast.error("Error al verificar horarios existentes");
+        return;
+      }
+
+      if (existingSlots && existingSlots.length > 0) {
+        toast.error("Ya existe un horario para esta fecha y hora");
+        return;
+      }
 
       const { data, error } = await supabase
         .from("availability_slots")
         .insert({
-          doctor_id: user?.id,
-          start_time: startDateTime,
-          end_time: endDateTime,
+          doctor_id: user.id,
+          start_time: startDateTimeString,
+          end_time: endDateTimeString,
           is_available: true,
-        });
+        })
+        .select();
 
       if (error) {
         console.error("Error creating availability slot:", error);
-        toast.error("Error al crear el horario de disponibilidad.");
+        toast.error("Error al crear el horario de disponibilidad: " + error.message);
       } else {
         console.log("Availability slot created successfully:", data);
-        toast.success("Horario de disponibilidad creado exitosamente.");
+        toast.success("Horario de disponibilidad creado exitosamente");
+        // Refresh events for the selected date
+        fetchCalendarEvents(date);
       }
     } catch (error) {
       console.error("Error al crear horario de disponibilidad:", error);
-      toast.error("Error al crear el horario de disponibilidad.");
+      toast.error("Error inesperado al crear el horario de disponibilidad");
     } finally {
       setLoading(false);
     }
   };
 
   const fetchCalendarEvents = async (date: string) => {
+    if (!user) return;
+    
     setLoading(true);
     console.log("Fetching calendar events for date:", date);
     try {
@@ -143,12 +204,14 @@ export const useGoogleCalendar = () => {
       const { data, error } = await supabase
         .from("availability_slots")
         .select("*")
-        .eq("doctor_id", user?.id)
+        .eq("doctor_id", user.id)
         .gte("start_time", startOfDay)
-        .lte("end_time", endOfDay);
+        .lte("end_time", endOfDay)
+        .order("start_time", { ascending: true });
 
       if (error) {
         console.error("Error fetching availability slots:", error);
+        toast.error("Error al obtener horarios de disponibilidad");
         setEvents([]);
       } else {
         console.log("Availability slots fetched successfully:", data);
@@ -163,6 +226,7 @@ export const useGoogleCalendar = () => {
       }
     } catch (error) {
       console.error("Error al obtener eventos del calendario:", error);
+      toast.error("Error al obtener eventos del calendario");
       setEvents([]);
     } finally {
       setLoading(false);
