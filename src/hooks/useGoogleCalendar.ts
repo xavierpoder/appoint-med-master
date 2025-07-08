@@ -62,14 +62,73 @@ export const useGoogleCalendar = () => {
 
   const connectGoogleCalendar = async () => {
     console.log("Attempting to connect Google Calendar...");
-    toast.info("Funcionalidad de Google Calendar en desarrollo. Próximamente disponible.");
+    setLoading(true);
+    
+    try {
+      // Google OAuth 2.0 configuration
+      const clientId = "858ea533-dd93-4859-a5ae-88b31e89d1e3"; // Using project ID temporarily - replace with actual client ID
+      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const scope = "https://www.googleapis.com/auth/calendar";
+      
+      // Build OAuth URL
+      const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+      authUrl.searchParams.append("client_id", clientId);
+      authUrl.searchParams.append("redirect_uri", redirectUri);
+      authUrl.searchParams.append("response_type", "code");
+      authUrl.searchParams.append("scope", scope);
+      authUrl.searchParams.append("access_type", "offline");
+      authUrl.searchParams.append("prompt", "consent");
+      
+      // Redirect to Google OAuth
+      window.location.href = authUrl.toString();
+    } catch (error) {
+      console.error("Error connecting to Google Calendar:", error);
+      toast.error("Error al conectar con Google Calendar");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAuthCallback = async (code: string) => {
     setLoading(true);
     console.log("Handling Google Auth callback with code:", code);
-    // TODO: Implement auth callback handling
-    setLoading(false);
+    
+    try {
+      // Call the edge function to handle OAuth exchange
+      const { data, error } = await supabase.functions.invoke('google-calendar', {
+        body: {
+          action: 'oauth-callback',
+          code: code,
+          redirect_uri: `${window.location.origin}/auth/google/callback`
+        }
+      });
+      
+      if (error) {
+        console.error("Error handling OAuth callback:", error);
+        toast.error("Error al conectar con Google Calendar");
+        return;
+      }
+      
+      console.log("OAuth successful:", data);
+      toast.success("Google Calendar conectado exitosamente");
+      
+      // Refresh connection status
+      const { data: doctorData, error: updateError } = await supabase
+        .from("doctors")
+        .select("google_calendar_access_token")
+        .eq("id", user?.id)
+        .maybeSingle();
+      
+      if (!updateError && doctorData?.google_calendar_access_token) {
+        setIsConnected(true);
+        await fetchCalendars();
+      }
+    } catch (error) {
+      console.error("Error handling OAuth callback:", error);
+      toast.error("Error al conectar con Google Calendar");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchCalendars = async () => {
@@ -165,6 +224,7 @@ export const useGoogleCalendar = () => {
         return;
       }
 
+      // Create in local database first
       const { data, error } = await supabase
         .from("availability_slots")
         .insert({
@@ -178,12 +238,55 @@ export const useGoogleCalendar = () => {
       if (error) {
         console.error("Error creating availability slot:", error);
         toast.error("Error al crear el horario de disponibilidad: " + error.message);
-      } else {
-        console.log("Availability slot created successfully:", data);
-        toast.success("Horario de disponibilidad creado exitosamente");
-        // Refresh events for the selected date
-        fetchCalendarEvents(date);
+        return;
       }
+
+      // If connected to Google Calendar, also create the event there
+      if (isConnected) {
+        try {
+          const { data: calendarData, error: calendarError } = await supabase.functions.invoke('google-calendar', {
+            body: {
+              action: 'create-event',
+              calendarId: 'primary',
+              event: {
+                summary: 'Horario Disponible',
+                start: {
+                  dateTime: new Date(`${date}T${startTime}:00`).toISOString(),
+                  timeZone: TIMEZONE
+                },
+                end: {
+                  dateTime: new Date(`${date}T${endTime}:00`).toISOString(),
+                  timeZone: TIMEZONE
+                },
+                description: 'Horario de disponibilidad creado desde el sistema'
+              }
+            }
+          });
+
+          if (calendarError) {
+            console.error("Error creating Google Calendar event:", calendarError);
+            toast.warning("Horario creado localmente, pero no se pudo sincronizar con Google Calendar");
+          } else {
+            console.log("Google Calendar event created:", calendarData);
+            
+            // Update the local slot with the Google event ID
+            if (data && data[0] && calendarData?.id) {
+              await supabase
+                .from("availability_slots")
+                .update({ google_event_id: calendarData.id })
+                .eq("id", data[0].id);
+            }
+          }
+        } catch (calendarError) {
+          console.error("Error with Google Calendar sync:", calendarError);
+          toast.warning("Horario creado localmente, pero no se pudo sincronizar con Google Calendar");
+        }
+      }
+
+      console.log("Availability slot created successfully:", data);
+      toast.success("Horario de disponibilidad creado exitosamente");
+      // Refresh events for the selected date
+      fetchCalendarEvents(date);
     } catch (error) {
       console.error("Error al crear horario de disponibilidad:", error);
       toast.error("Error inesperado al crear el horario de disponibilidad");

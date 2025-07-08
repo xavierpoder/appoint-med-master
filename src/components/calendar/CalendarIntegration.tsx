@@ -36,19 +36,17 @@ const CalendarIntegration = () => {
             </div>
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-700">
-                La integración completa con Google Calendar está en desarrollo. Por ahora puedes gestionar tu disponibilidad localmente y los pacientes podrán ver tus horarios disponibles.
+                Conecta tu cuenta de Google Calendar para sincronizar automáticamente tus horarios de disponibilidad con tu calendario personal.
               </p>
             </div>
             <div className="p-3 bg-yellow-50 rounded-lg">
               <div className="flex items-start space-x-2">
                 <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-yellow-800">Funcionalidad actual:</p>
-                  <ul className="text-sm text-yellow-700 mt-1 space-y-1">
-                    <li>• Crear horarios de disponibilidad</li>
-                    <li>• Ver horarios programados</li>
-                    <li>• Gestionar citas con pacientes</li>
-                  </ul>
+                  <p className="text-sm font-medium text-yellow-800">Nota importante:</p>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Para conectar Google Calendar, necesitas configurar las credenciales OAuth en la consola de Google Cloud.
+                  </p>
                 </div>
               </div>
             </div>
@@ -59,7 +57,7 @@ const CalendarIntegration = () => {
               variant="outline"
             >
               <Link className="mr-2 h-4 w-4" />
-              {loading ? 'Conectando...' : 'Conectar Google Calendar (Próximamente)'}
+              {loading ? 'Conectando...' : 'Conectar Google Calendar'}
             </Button>
           </div>
         )}

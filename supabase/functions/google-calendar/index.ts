@@ -39,6 +39,8 @@ serve(async (req) => {
     const { action, ...payload } = await req.json()
 
     switch (action) {
+      case 'oauth-callback':
+        return await handleOAuthCallback(payload, user.id, supabaseClient)
       case 'list-calendars':
         return await listCalendars(user.id, supabaseClient)
       case 'create-event':
@@ -61,12 +63,79 @@ serve(async (req) => {
   }
 })
 
+async function handleOAuthCallback(payload: any, userId: string, supabaseClient: any) {
+  const { code, redirect_uri } = payload
+  
+  if (!code) {
+    return new Response(JSON.stringify({ error: 'No authorization code provided' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  try {
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        code: code,
+        client_id: Deno.env.get('GOOGLE_CLIENT_ID') || '',
+        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') || '',
+        redirect_uri: redirect_uri,
+        grant_type: 'authorization_code',
+      }),
+    })
+
+    if (!tokenResponse.ok) {
+      const error = await tokenResponse.text()
+      console.error('Token exchange failed:', error)
+      throw new Error('Failed to exchange code for tokens')
+    }
+
+    const tokens = await tokenResponse.json()
+    
+    // Store tokens in the database
+    const { error: updateError } = await supabaseClient
+      .from('doctors')
+      .update({
+        google_calendar_access_token: tokens.access_token,
+        google_calendar_refresh_token: tokens.refresh_token,
+      })
+      .eq('id', userId)
+
+    if (updateError) {
+      console.error('Error storing tokens:', updateError)
+      throw new Error('Failed to store tokens')
+    }
+
+    return new Response(JSON.stringify({ success: true, tokens }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  } catch (error) {
+    console.error('OAuth callback error:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+}
+
 async function getAccessToken(userId: string, supabaseClient: any) {
-  // This would get the OAuth token from Supabase auth
-  // For now, we'll simulate the token retrieval
-  // In production, you'd get this from the user's auth session
-  const { data: session } = await supabaseClient.auth.getSession()
-  return session?.provider_token
+  // Get tokens from the doctors table
+  const { data: doctor, error } = await supabaseClient
+    .from('doctors')
+    .select('google_calendar_access_token, google_calendar_refresh_token')
+    .eq('id', userId)
+    .single()
+
+  if (error || !doctor?.google_calendar_access_token) {
+    return null
+  }
+
+  return doctor.google_calendar_access_token
 }
 
 async function listCalendars(userId: string, supabaseClient: any) {
