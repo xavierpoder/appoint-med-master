@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -30,30 +31,37 @@ const DoctorDashboard = () => {
     const fetchAppointments = async () => {
       if (user && userRole === 'doctor') {
         setLoadingAppointments(true);
-        const { data, error } = await supabase
-          .from('appointments')
-          .select(`
-            id,
-            time,
-            specialty,
-            status,
-            patient_view!inner(first_name, last_name)
-          `)
-          .eq('doctor_id', user.id);
+        try {
+          const { data, error } = await supabase
+            .from('appointments')
+            .select(`
+              id,
+              time,
+              specialty,
+              status,
+              patient_view!inner(first_name, last_name)
+            `)
+            .eq('doctor_id', user.id);
 
-        if (error) {
+          if (error) {
+            console.error("Error fetching appointments:", error);
+            toast.error("Error al cargar las citas.");
+          } else {
+            console.log("Appointments fetched successfully:", data);
+            setAppointments(data.map((appt: any) => ({
+              id: appt.id,
+              patientName: `${appt.patient_view.first_name} ${appt.patient_view.last_name}`,
+              time: appt.time,
+              specialty: appt.specialty,
+              status: appt.status,
+            })));
+          }
+        } catch (error) {
           console.error("Error fetching appointments:", error);
           toast.error("Error al cargar las citas.");
-        } else {
-          setAppointments(data.map((appt: any) => ({
-            id: appt.id,
-            patientName: `${appt.patient_view.first_name} ${appt.patient_view.last_name}`,
-            time: appt.time,
-            specialty: appt.specialty,
-            status: appt.status,
-          })));
+        } finally {
+          setLoadingAppointments(false);
         }
-        setLoadingAppointments(false);
       }
     };
 
