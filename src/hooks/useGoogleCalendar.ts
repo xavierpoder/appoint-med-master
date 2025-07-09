@@ -66,7 +66,7 @@ export const useGoogleCalendar = () => {
     
     try {
       // Google OAuth 2.0 configuration
-      const clientId = "858ea533-dd93-4859-a5ae-88b31e89d1e3"; // Using project ID temporarily - replace with actual client ID
+      const clientId = "1085467917225-5t2g8impm6d1hftc3j7hqa8fiv7f2mjq.apps.googleusercontent.com";
       const redirectUri = `${window.location.origin}/auth/google/callback`;
       const scope = "https://www.googleapis.com/auth/calendar";
       
