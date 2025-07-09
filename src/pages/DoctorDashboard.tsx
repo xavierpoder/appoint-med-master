@@ -25,7 +25,7 @@ const DoctorDashboard = () => {
   const [activeTab, setActiveTab] = useState("appointments");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
-  const { user, userRole } = useAuth();
+  const { user, userRole, signOut } = useAuth();
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -68,8 +68,8 @@ const DoctorDashboard = () => {
     fetchAppointments();
   }, [user, userRole]);
 
-  const handleLogout = () => {
-    // Lógica para cerrar sesión
+  const handleLogout = async () => {
+    await signOut();
     toast.success("Sesión cerrada exitosamente");
     navigate("/auth");
   };
