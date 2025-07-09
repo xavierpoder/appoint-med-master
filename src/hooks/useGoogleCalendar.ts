@@ -67,8 +67,8 @@ export const useGoogleCalendar = () => {
     try {
       // Google OAuth 2.0 configuration
       const clientId = "1085467917225-5t2g8impm6d1hftc3j7hqa8fiv7f2mjq.apps.googleusercontent.com";
-      const redirectUri = `${window.location.origin}/auth/google/callback`;
-      console.log("Current redirect URI:", redirectUri);
+      const redirectUri = "https://appoint-med-master.lovable.app/auth/google/callback";
+      console.log("Using redirect URI:", redirectUri);
       const scope = "https://www.googleapis.com/auth/calendar";
       
       // Build OAuth URL
@@ -100,7 +100,7 @@ export const useGoogleCalendar = () => {
         body: {
           action: 'oauth-callback',
           code: code,
-          redirect_uri: `${window.location.origin}/auth/google/callback`
+          redirect_uri: "https://appoint-med-master.lovable.app/auth/google/callback"
         }
       });
       
