@@ -6,9 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, User, ArrowUp, ArrowDown, Settings } from "lucide-react";
 import { toast } from "sonner";
-import CalComIntegration from "@/components/calendar/CalComIntegration";
+import CustomCalendar from "@/components/calendar/CustomCalendar";
 import AvailabilityManager from "@/components/calendar/AvailabilityManager";
-import CalComEvents from "@/components/calendar/CalComEvents";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -128,9 +127,8 @@ const DoctorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="calendar" className="mt-6">
-            <h2 className="text-2xl font-semibold mb-4">Mi Calendario (Cal.com)</h2>
-            <CalComIntegration />
-            <CalComEvents />
+            <h2 className="text-2xl font-semibold mb-4">Mi Calendario</h2>
+            <CustomCalendar />
           </TabsContent>
         </Tabs>
       </Card>
