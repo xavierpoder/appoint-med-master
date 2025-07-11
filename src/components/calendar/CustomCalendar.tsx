@@ -2,18 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, Plus, User } from 'lucide-react';
 import { useCustomCalendar } from '@/hooks/useCustomCalendar';
+import { useAuth } from '@/contexts/AuthContext';
 
-const CustomCalendar = () => {
+interface CustomCalendarProps {
+  viewMode?: 'doctor' | 'patient';
+  onSlotSelect?: (slot: any) => void;
+}
+
+const CustomCalendar: React.FC<CustomCalendarProps> = ({ 
+  viewMode = 'doctor', 
+  onSlotSelect 
+}) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const { events, loading, fetchAvailabilitySlots } = useCustomCalendar();
+  const { events, appointments, loading, fetchAvailabilitySlots, fetchAppointments } = useCustomCalendar();
+  const { userRole } = useAuth();
 
   useEffect(() => {
     const dateStr = selectedDate.toISOString().split('T')[0];
     fetchAvailabilitySlots(dateStr);
-  }, [selectedDate, fetchAvailabilitySlots]);
+    if (viewMode === 'doctor') {
+      fetchAppointments(dateStr);
+    }
+  }, [selectedDate, fetchAvailabilitySlots, fetchAppointments, viewMode]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -57,6 +70,36 @@ const CustomCalendar = () => {
 
   const isSelected = (date: Date) => {
     return date.toDateString() === selectedDate.toDateString();
+  };
+
+  const hasAppointmentsOnDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return appointments.some(appointment => 
+      appointment.time.startsWith(dateStr)
+    );
+  };
+
+  const hasAvailabilityOnDate = (date: Date) => {
+    // This would need to be implemented based on your data structure
+    // For now, returning false to avoid errors
+    return false;
+  };
+
+  const isSlotBooked = (slot: any) => {
+    return appointments.some(appointment => {
+      const appointmentTime = new Date(appointment.time);
+      const slotStart = new Date(slot.start);
+      return Math.abs(appointmentTime.getTime() - slotStart.getTime()) < 60000; // Within 1 minute
+    });
+  };
+
+  const getPatientNameForSlot = (slot: any) => {
+    const appointment = appointments.find(appointment => {
+      const appointmentTime = new Date(appointment.time);
+      const slotStart = new Date(slot.start);
+      return Math.abs(appointmentTime.getTime() - slotStart.getTime()) < 60000;
+    });
+    return appointment ? appointment.patientName : 'Paciente';
   };
 
   const days = getDaysInMonth(currentDate);
@@ -115,15 +158,23 @@ const CustomCalendar = () => {
                 {date && (
                   <Button
                     variant={isSelected(date) ? "default" : "ghost"}
-                    className={`w-full h-full p-1 text-sm ${
+                    className={`w-full h-full p-1 text-sm relative ${
                       isToday(date) ? 'border-2 border-primary' : ''
                     } ${
-                      date < new Date() ? 'opacity-50' : ''
+                      date < new Date() && viewMode === 'patient' ? 'opacity-50' : ''
                     }`}
                     onClick={() => selectDate(date)}
-                    disabled={date < new Date()}
+                    disabled={date < new Date() && viewMode === 'patient'}
                   >
                     {date.getDate()}
+                    {/* Indicador de citas */}
+                    {hasAppointmentsOnDate(date) && (
+                      <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></div>
+                    )}
+                    {/* Indicador de disponibilidad */}
+                    {hasAvailabilityOnDate(date) && (
+                      <div className="absolute bottom-0 left-0 w-2 h-2 bg-green-500 rounded-full"></div>
+                    )}
                   </Button>
                 )}
               </div>
@@ -154,23 +205,47 @@ const CustomCalendar = () => {
             </div>
           ) : (
             <div className="grid gap-3">
-              {events.map((event: any) => (
-                <div 
-                  key={event.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <div>
-                      <p className="font-medium">{event.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {event.startTime} - {event.endTime}
-                      </p>
+              {events.map((event: any) => {
+                const isBooked = isSlotBooked(event);
+                return (
+                  <div 
+                    key={event.id}
+                    className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
+                      viewMode === 'patient' && !isBooked 
+                        ? 'hover:bg-primary/10 cursor-pointer border-primary/20' 
+                        : 'hover:bg-muted/50'
+                    } ${isBooked ? 'bg-muted/50' : ''}`}
+                    onClick={() => {
+                      if (viewMode === 'patient' && !isBooked && onSlotSelect) {
+                        onSlotSelect(event);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        isBooked ? 'bg-red-500' : 'bg-green-500'
+                      }`}></div>
+                      <div>
+                        <p className="font-medium">
+                          {isBooked ? 'Ocupado' : event.title}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {event.startTime} - {event.endTime}
+                        </p>
+                        {isBooked && viewMode === 'doctor' && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <User className="w-3 h-3" />
+                            {getPatientNameForSlot(event)}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    <Badge variant={isBooked ? "destructive" : "secondary"}>
+                      {isBooked ? 'Ocupado' : (viewMode === 'patient' ? 'Disponible' : 'Libre')}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary">Disponible</Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

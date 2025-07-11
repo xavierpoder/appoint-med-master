@@ -1,45 +1,68 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Clock, Plus, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Plus, Trash2, Save, CalendarDays } from 'lucide-react';
 import { useCustomCalendar } from '@/hooks/useCustomCalendar';
+import DaySelector from '@/components/availability/DaySelector';
 import { toast } from 'sonner';
 
 const AvailabilityManager = () => {
-  const { createAvailabilitySlot, loading } = useCustomCalendar();
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
-  const [date, setDate] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const { createAvailabilitySlot, loading } = useCustomCalendar();
 
-  const handleCreateSlot = async () => {
-    if (!date || !startTime || !endTime) {
-      toast.error('Por favor completa todos los campos');
+  const generateDatesInRange = (start: string, end: string, selectedDays: number[]): string[] => {
+    const dates: string[] = [];
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      if (selectedDays.includes(d.getDay())) {
+        dates.push(d.toISOString().split('T')[0]);
+      }
+    }
+    
+    return dates;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!startDate || !endDate || selectedDays.length === 0 || !startTime || !endTime) {
+      toast.error('Por favor completa todos los campos y selecciona al menos un día');
       return;
     }
 
-    // Additional validation
-    if (startTime >= endTime) {
-      toast.error('La hora de inicio debe ser anterior a la hora de fin');
+    if (new Date(startDate) > new Date(endDate)) {
+      toast.error('La fecha de inicio debe ser anterior a la fecha de fin');
       return;
     }
 
-    setIsCreating(true);
     try {
-      await createAvailabilitySlot(date, startTime, endTime);
+      const datesToCreate = generateDatesInRange(startDate, endDate, selectedDays);
       
-      // Reset form on success
-      setDate('');
+      toast.info(`Creando disponibilidad para ${datesToCreate.length} días...`);
+      
+      for (const date of datesToCreate) {
+        await createAvailabilitySlot(date, startTime, endTime);
+      }
+      
+      toast.success(`Disponibilidad creada para ${datesToCreate.length} días`);
+      
+      // Reset form
+      setStartDate('');
+      setEndDate('');
+      setSelectedDays([]);
       setStartTime('');
       setEndTime('');
     } catch (error) {
-      console.error('Error creating availability slot:', error);
       toast.error('Error al crear el horario de disponibilidad');
-    } finally {
-      setIsCreating(false);
     }
   };
 
@@ -50,79 +73,101 @@ const AvailabilityManager = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
+          <Calendar className="h-5 w-5" />
           Gestionar Disponibilidad
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-          <AlertCircle className="h-4 w-4 text-blue-600" />
-          <p className="text-sm text-blue-700">
-            Crea tus horarios de disponibilidad para que los pacientes puedan agendar citas contigo.
-          </p>
-        </div>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Rango de fechas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startDate">Fecha de Inicio</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="endDate">Fecha de Fin</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate || new Date().toISOString().split('T')[0]}
+              />
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="date">Fecha</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              min={today}
-              required
-            />
+          {/* Selector de días */}
+          <DaySelector
+            selectedDays={selectedDays}
+            onDaysChange={setSelectedDays}
+          />
+
+          {/* Horarios */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startTime">Hora de Inicio</Label>
+              <Input
+                id="startTime"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="endTime">Hora de Fin</Label>
+              <Input
+                id="endTime"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="start-time">Hora de inicio</Label>
-            <Input
-              id="start-time"
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="end-time">Hora de fin</Label>
-            <Input
-              id="end-time"
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              required
-            />
-          </div>
-        </div>
-        
-        <Button 
-          onClick={handleCreateSlot}
-          disabled={isCreating || loading}
-          className="w-full"
-        >
-          {isCreating ? (
-            <Clock className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4 mr-2" />
+
+          {/* Resumen */}
+          {startDate && endDate && selectedDays.length > 0 && startTime && endTime && (
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <CalendarDays className="w-4 h-4" />
+                Resumen de Disponibilidad
+              </h4>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>
+                  <strong>Período:</strong> {new Date(startDate).toLocaleDateString('es-ES')} - {new Date(endDate).toLocaleDateString('es-ES')}
+                </p>
+                <p>
+                  <strong>Horario:</strong> {startTime} - {endTime}
+                </p>
+                <p>
+                  <strong>Días:</strong> {selectedDays.length} día{selectedDays.length !== 1 ? 's' : ''} por semana
+                </p>
+              </div>
+            </div>
           )}
-          {isCreating ? 'Creando...' : 'Crear Horario Disponible'}
-        </Button>
-
-        {date && startTime && endTime && (
-          <div className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              <strong>Vista previa:</strong> {new Date(date).toLocaleDateString('es-ES', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })} de {startTime} a {endTime}
-            </p>
-          </div>
-        )}
+          
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? (
+              <>
+                <Clock className="mr-2 h-4 w-4 animate-spin" />
+                Creando disponibilidad...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Crear Disponibilidad para Múltiples Días
+              </>
+            )}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );

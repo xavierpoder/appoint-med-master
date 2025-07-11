@@ -8,6 +8,7 @@ export const useCustomCalendar = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState([]);
+  const [appointments, setAppointments] = useState([]);
 
   const createAvailabilitySlot = async (date: string, startTime: string, endTime: string) => {
     setLoading(true);
@@ -76,6 +77,42 @@ export const useCustomCalendar = () => {
     }
   };
 
+  const fetchAppointments = async (date: string) => {
+    setLoading(true);
+    try {
+      const startOfDay = `${date}T00:00:00.000Z`;
+      const endOfDay = `${date}T23:59:59.999Z`;
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          time,
+          patient_id,
+          patient_view!inner(first_name, last_name)
+        `)
+        .eq('doctor_id', user?.id)
+        .gte('time', startOfDay)
+        .lte('time', endOfDay);
+
+      if (error) throw error;
+
+      const formattedAppointments = data.map((appointment: any) => ({
+        id: appointment.id,
+        time: appointment.time,
+        patientName: `${appointment.patient_view.first_name} ${appointment.patient_view.last_name}`,
+        patient_id: appointment.patient_id,
+      }));
+
+      setAppointments(formattedAppointments);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      toast.error('Error al cargar las citas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const deleteAvailabilitySlot = async (slotId: string) => {
     try {
       const { error } = await supabase
@@ -95,8 +132,10 @@ export const useCustomCalendar = () => {
   return {
     loading,
     events,
+    appointments,
     createAvailabilitySlot,
     fetchAvailabilitySlots,
+    fetchAppointments,
     deleteAvailabilitySlot
   };
 };

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { Calendar, Clock, User, ArrowUp, ArrowDown, Settings } from "lucide-reac
 import { toast } from "sonner";
 import CustomCalendar from "@/components/calendar/CustomCalendar";
 import AvailabilityManager from "@/components/calendar/AvailabilityManager";
+import AppointmentCard from "@/components/appointments/AppointmentCard";
+import AppointmentDetailsModal from "@/components/appointments/AppointmentDetailsModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,6 +26,7 @@ const DoctorDashboard = () => {
   const [activeTab, setActiveTab] = useState("appointments");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const { user, userRole, signOut } = useAuth();
 
   useEffect(() => {
@@ -97,28 +100,48 @@ const DoctorDashboard = () => {
           </TabsList>
 
           <TabsContent value="appointments" className="mt-6">
-            <h2 className="text-2xl font-semibold mb-4">Mis Citas</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold">Mis Citas de Hoy</h2>
+              <div className="text-sm text-muted-foreground">
+                {new Date().toLocaleDateString('es-ES', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </div>
+            </div>
+            
             {loadingAppointments ? (
-              <p>Cargando citas...</p>
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-3">Cargando citas...</span>
+              </div>
             ) : appointments.length === 0 ? (
-              <p>No tienes citas programadas.</p>
+              <div className="text-center py-12">
+                <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg font-medium mb-2">No tienes citas programadas para hoy</p>
+                <p className="text-muted-foreground">Las citas aparecerán aquí cuando sean agendadas</p>
+              </div>
             ) : (
-              <ul className="space-y-4">
-                {appointments.map((appointment) => (
-                  <li key={appointment.id} className="p-4 border rounded-md flex justify-between items-center">
-                    <div>
-                      <p className="text-lg font-medium">Paciente: {appointment.patientName}</p>
-                      <p className="text-gray-600">Hora: {appointment.time}</p>
-                      <p className="text-gray-600">Especialidad: {appointment.specialty}</p>
-                      <p className="text-gray-600">Estado: {appointment.status}</p>
-                    </div>
-                    <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-                      Ver Detalles
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {appointments
+                  .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
+                  .map((appointment) => (
+                    <AppointmentCard
+                      key={appointment.id}
+                      appointment={appointment}
+                      onClick={() => setSelectedAppointment(appointment)}
+                    />
+                  ))}
+              </div>
             )}
+
+            <AppointmentDetailsModal
+              isOpen={!!selectedAppointment}
+              onClose={() => setSelectedAppointment(null)}
+              appointment={selectedAppointment}
+            />
           </TabsContent>
 
           <TabsContent value="availability" className="mt-6">
