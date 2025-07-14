@@ -42,29 +42,7 @@ export type Database = {
           new_values?: Json | null
           old_values?: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "appointment_history_changed_by_fkey"
-            columns: ["changed_by"]
-            isOneToOne: false
-            referencedRelation: "doctor_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "appointment_history_changed_by_fkey"
-            columns: ["changed_by"]
-            isOneToOne: false
-            referencedRelation: "patient_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "appointment_history_changed_by_fkey"
-            columns: ["changed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       appointments: {
         Row: {
