@@ -56,26 +56,44 @@ export const useCustomCalendar = () => {
 
       if (error) throw error;
 
-      const formattedEvents = data.map((slot: any) => ({
-        id: slot.id,
-        title: 'Disponible',
-        start: new Date(slot.start_time),
-        end: new Date(slot.end_time),
-        startTime: new Date(slot.start_time).toLocaleTimeString('es-ES', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          timeZone: 'UTC'
-        }),
-        endTime: new Date(slot.end_time).toLocaleTimeString('es-ES', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          timeZone: 'UTC'
-        }),
-        doctor_id: slot.doctor_id,
-        is_available: slot.is_available
-      }));
+      // Divide each availability slot into 1-hour slots
+      const oneHourSlots = [];
+      data.forEach((slot: any) => {
+        const startTime = new Date(slot.start_time);
+        const endTime = new Date(slot.end_time);
+        
+        let currentTime = new Date(startTime);
+        while (currentTime < endTime) {
+          const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+          
+          // Don't create slots that extend beyond the original availability
+          if (slotEndTime <= endTime) {
+            oneHourSlots.push({
+              id: `${slot.id}-${currentTime.getTime()}`, // Unique ID for each hour slot
+              originalSlotId: slot.id,
+              title: 'Disponible',
+              start: new Date(currentTime),
+              end: new Date(slotEndTime),
+              startTime: currentTime.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'UTC'
+              }),
+              endTime: slotEndTime.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'UTC'
+              }),
+              doctor_id: slot.doctor_id,
+              is_available: slot.is_available
+            });
+          }
+          
+          currentTime = new Date(slotEndTime);
+        }
+      });
 
-      setEvents(formattedEvents);
+      setEvents(oneHourSlots);
     } catch (error) {
       console.error('Error fetching availability slots:', error);
       toast.error('Error al cargar los horarios');
@@ -84,8 +102,9 @@ export const useCustomCalendar = () => {
     }
   }, [user?.id]);
 
-  const fetchAppointments = useCallback(async (date: string) => {
-    if (!user?.id) return;
+  const fetchAppointments = useCallback(async (date: string, doctorId?: string) => {
+    const targetDoctorId = doctorId || user?.id;
+    if (!targetDoctorId) return;
     
     setLoading(true);
     try {
@@ -98,9 +117,9 @@ export const useCustomCalendar = () => {
           id,
           time,
           patient_id,
-          patient_view!inner(first_name, last_name)
+          patient_view!inner(first_name, last_name, phone, email)
         `)
-        .eq('doctor_id', user.id)
+        .eq('doctor_id', targetDoctorId)
         .gte('time', startOfDay)
         .lte('time', endOfDay);
 
@@ -110,7 +129,19 @@ export const useCustomCalendar = () => {
         id: appointment.id,
         time: appointment.time,
         patientName: `${appointment.patient_view.first_name} ${appointment.patient_view.last_name}`,
+        patientPhone: appointment.patient_view.phone,
+        patientEmail: appointment.patient_view.email,
         patient_id: appointment.patient_id,
+        startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'UTC'
+        }),
+        endTime: new Date(new Date(appointment.time).getTime() + 60 * 60 * 1000).toLocaleTimeString('es-ES', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'UTC'
+        })
       }));
 
       setAppointments(formattedAppointments);

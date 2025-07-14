@@ -25,9 +25,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   useEffect(() => {
     const dateStr = selectedDate.toISOString().split('T')[0];
     fetchAvailabilitySlots(dateStr, doctorId);
-    if (viewMode === 'doctor') {
-      fetchAppointments(dateStr);
-    }
+    fetchAppointments(dateStr, doctorId);
   }, [selectedDate, fetchAvailabilitySlots, fetchAppointments, viewMode, doctorId]);
 
   const getDaysInMonth = (date: Date) => {
@@ -93,7 +91,9 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
     return appointments.some(appointment => {
       const appointmentTime = new Date(appointment.time);
       const slotStart = new Date(slot.start);
-      return Math.abs(appointmentTime.getTime() - slotStart.getTime()) < 60000; // Within 1 minute
+      const slotEnd = new Date(slot.end);
+      // Check if appointment overlaps with this 1-hour slot
+      return appointmentTime >= slotStart && appointmentTime < slotEnd;
     });
   };
 
@@ -209,7 +209,9 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             </div>
           ) : (
             <div className="grid gap-3">
-              {events.map((event: any) => {
+              {events
+                .filter((event: any) => viewMode === 'doctor' || !isSlotBooked(event)) // Hide booked slots for patients
+                .map((event: any) => {
                 const isBooked = isSlotBooked(event);
                 return (
                   <div 
@@ -237,10 +239,29 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                           {event.startTime} - {event.endTime}
                         </p>
                         {isBooked && viewMode === 'doctor' && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                            <User className="w-3 h-3" />
-                            {getPatientNameForSlot(event)}
-                          </p>
+                          <div className="mt-2 space-y-1">
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              {getPatientNameForSlot(event)}
+                            </p>
+                            {(() => {
+                              const appointment = appointments.find(appointment => {
+                                const appointmentTime = new Date(appointment.time);
+                                const slotStart = new Date(event.start);
+                                return Math.abs(appointmentTime.getTime() - slotStart.getTime()) < 60000;
+                              });
+                              return appointment && (
+                                <div className="text-xs text-muted-foreground space-y-0.5">
+                                  {appointment.patientPhone && (
+                                    <p>📞 {appointment.patientPhone}</p>
+                                  )}
+                                  {appointment.patientEmail && (
+                                    <p>✉️ {appointment.patientEmail}</p>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
                         )}
                       </div>
                     </div>

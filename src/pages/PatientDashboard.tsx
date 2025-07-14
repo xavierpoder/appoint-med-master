@@ -97,13 +97,8 @@ const PatientDashboard = () => {
 
       if (appointmentError) throw appointmentError;
 
-      // Mark the availability slot as unavailable
-      const { error: slotError } = await supabase
-        .from('availability_slots')
-        .update({ is_available: false })
-        .eq('id', selectedSlot.id);
-
-      if (slotError) throw slotError;
+      // We don't need to mark the slot as unavailable since we're using 1-hour bookings
+      // The slot will be filtered out by checking existing appointments
 
       toast.success(`Cita agendada exitosamente con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}`);
       setSelectedDoctor(null);
