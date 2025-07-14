@@ -48,7 +48,8 @@ const AdminDashboard = () => {
     yearsExperience: '',
     education: '',
     avatarUrl: '',
-    languages: ''
+    languages: '',
+    licenseNumber: ''
   });
 
   // Redirect if not admin
@@ -104,7 +105,8 @@ const AdminDashboard = () => {
             years_experience: formData.yearsExperience,
             education: formData.education,
             languages: formData.languages,
-            avatar_url: formData.avatarUrl
+            avatar_url: formData.avatarUrl,
+            license_number: formData.licenseNumber
           }
         }
       });
@@ -130,7 +132,8 @@ const AdminDashboard = () => {
         yearsExperience: '',
         education: '',
         avatarUrl: '',
-        languages: ''
+        languages: '',
+        licenseNumber: ''
       });
 
       // Refresh doctors list
@@ -296,17 +299,27 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="consultationFee">Tarifa de Consulta (COP)</Label>
+                    <Label htmlFor="consultationFee">Tarifa de Consulta (USD)</Label>
                     <Input
                       id="consultationFee"
                       type="number"
                       min="0"
-                      step="1000"
+                      step="5"
                       value={formData.consultationFee}
                       onChange={(e) => handleInputChange('consultationFee', e.target.value)}
-                      placeholder="150000"
+                      placeholder="50"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="licenseNumber">Número de Licencia</Label>
+                  <Input
+                    id="licenseNumber"
+                    value={formData.licenseNumber}
+                    onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
+                    placeholder="Ej: LIC-123456789"
+                  />
                 </div>
 
                 <div>
