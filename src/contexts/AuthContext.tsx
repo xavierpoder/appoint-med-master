@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  userRole: 'doctor' | 'patient' | null;
+  userRole: 'doctor' | 'patient' | 'admin' | null;
   loading: boolean;
   signUp: (email: string, password: string, userData: SignUpData) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -17,9 +17,8 @@ interface AuthContextType {
 interface SignUpData {
   firstName: string;
   lastName: string;
-  role: 'doctor' | 'patient';
+  role: 'patient'; // Solo pacientes pueden registrarse
   phone?: string;
-  specialty?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +34,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userRole, setUserRole] = useState<'doctor' | 'patient' | null>(null);
+  const [userRole, setUserRole] = useState<'doctor' | 'patient' | 'admin' | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -46,15 +45,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role from profiles table
+          // Detectar admin por email o buscar en profiles
           setTimeout(async () => {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
+            const adminEmail = 'admin@clinicamaster.com'; // Email del administrador
             
-            setUserRole(profile?.role || null);
+            if (session.user.email === adminEmail) {
+              setUserRole('admin');
+            } else {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single();
+              
+              setUserRole(profile?.role || null);
+            }
           }, 0);
         } else {
           setUserRole(null);
@@ -70,15 +75,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile }) => {
-            setUserRole(profile?.role || null);
-            setLoading(false);
-          });
+        const adminEmail = 'admin@clinicamaster.com';
+        
+        if (session.user.email === adminEmail) {
+          setUserRole('admin');
+          setLoading(false);
+        } else {
+          supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single()
+            .then(({ data: profile }) => {
+              setUserRole(profile?.role || null);
+              setLoading(false);
+            });
+        }
       } else {
         setLoading(false);
       }
@@ -99,8 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           first_name: userData.firstName,
           last_name: userData.lastName,
           role: userData.role,
-          phone: userData.phone || '',
-          specialty: userData.specialty || ''
+          phone: userData.phone || ''
         }
       }
     });

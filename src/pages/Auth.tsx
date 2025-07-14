@@ -25,7 +25,7 @@ const Auth = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'doctor' | 'patient'>('patient');
+  const [role, setRole] = useState<'patient'>('patient');
   const [specialty, setSpecialty] = useState('');
 
   useEffect(() => {
@@ -61,9 +61,8 @@ const Auth = () => {
       const userData = {
         firstName,
         lastName,
-        role,
-        phone,
-        ...(role === 'doctor' && { specialty })
+        role: 'patient' as const,
+        phone
       };
 
       const { error } = await signUp(signupEmail, signupPassword, userData);
@@ -241,24 +240,11 @@ const Auth = () => {
                     required
                   />
                   
-                  <Select value={role} onValueChange={(value: 'doctor' | 'patient') => setRole(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="patient">Paciente</SelectItem>
-                      <SelectItem value="doctor">Doctor</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {role === 'doctor' && (
-                    <Input
-                      placeholder="Especialidad médica"
-                      value={specialty}
-                      onChange={(e) => setSpecialty(e.target.value)}
-                      required
-                    />
-                  )}
+                  {/* Rol fijo como paciente - los doctores son creados por el admin */}
+                  <input type="hidden" value="patient" />
+                  <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                    <p><strong>Nota:</strong> El registro está disponible únicamente para pacientes. Los doctores son registrados por el administrador del sistema.</p>
+                  </div>
 
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'Creando cuenta...' : 'Crear Cuenta'}

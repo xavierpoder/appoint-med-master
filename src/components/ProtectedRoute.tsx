@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   component: React.ComponentType;
-  allowedRoles?: ('doctor' | 'patient')[];
+  allowedRoles?: ('doctor' | 'patient' | 'admin')[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 

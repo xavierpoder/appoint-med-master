@@ -15,7 +15,9 @@ const Index = () => {
   // Redirect authenticated users to their respective dashboards
   useEffect(() => {
     if (!loading && user && userRole) {
-      if (userRole === 'doctor') {
+      if (userRole === 'admin') {
+        navigate('/admin');
+      } else if (userRole === 'doctor') {
         navigate('/doctor');
       } else if (userRole === 'patient') {
         navigate('/patient');

@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import PatientDashboard from "./pages/PatientDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import GoogleCallback from "./pages/GoogleCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
@@ -28,6 +29,15 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/google/callback" element={<GoogleCallback />} />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute 
+                  component={AdminDashboard} 
+                  allowedRoles={['admin']} 
+                />
+              } 
+            />
             <Route 
               path="/doctor" 
               element={
