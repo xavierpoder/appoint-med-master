@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -10,7 +10,7 @@ export const useCustomCalendar = () => {
   const [events, setEvents] = useState([]);
   const [appointments, setAppointments] = useState([]);
 
-  const createAvailabilitySlot = async (date: string, startTime: string, endTime: string) => {
+  const createAvailabilitySlot = useCallback(async (date: string, startTime: string, endTime: string) => {
     setLoading(true);
     try {
       const startDateTime = `${date}T${startTime}:00.000Z`;
@@ -34,9 +34,11 @@ export const useCustomCalendar = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const fetchAvailabilitySlots = async (date: string) => {
+  const fetchAvailabilitySlots = useCallback(async (date: string) => {
+    if (!user?.id) return;
+    
     setLoading(true);
     try {
       const startOfDay = `${date}T00:00:00.000Z`;
@@ -45,7 +47,7 @@ export const useCustomCalendar = () => {
       const { data, error } = await supabase
         .from('availability_slots')
         .select('*')
-        .eq('doctor_id', user?.id)
+        .eq('doctor_id', user.id)
         .gte('start_time', startOfDay)
         .lte('start_time', endOfDay)
         .eq('is_available', true)
@@ -75,9 +77,11 @@ export const useCustomCalendar = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const fetchAppointments = async (date: string) => {
+  const fetchAppointments = useCallback(async (date: string) => {
+    if (!user?.id) return;
+    
     setLoading(true);
     try {
       const startOfDay = `${date}T00:00:00.000Z`;
@@ -91,7 +95,7 @@ export const useCustomCalendar = () => {
           patient_id,
           patient_view!inner(first_name, last_name)
         `)
-        .eq('doctor_id', user?.id)
+        .eq('doctor_id', user.id)
         .gte('time', startOfDay)
         .lte('time', endOfDay);
 
@@ -111,9 +115,9 @@ export const useCustomCalendar = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const deleteAvailabilitySlot = async (slotId: string) => {
+  const deleteAvailabilitySlot = useCallback(async (slotId: string) => {
     try {
       const { error } = await supabase
         .from('availability_slots')
@@ -127,7 +131,7 @@ export const useCustomCalendar = () => {
       console.error('Error deleting slot:', error);
       toast.error('Error al eliminar el horario');
     }
-  };
+  }, []);
 
   return {
     loading,
