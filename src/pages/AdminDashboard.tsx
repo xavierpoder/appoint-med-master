@@ -85,16 +85,27 @@ const AdminDashboard = () => {
     setLoading(true);
 
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Use regular signup instead of admin API
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        email_confirm: true,
-        user_metadata: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          role: 'doctor',
-          phone: formData.phone
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            role: 'doctor',
+            phone: formData.phone,
+            specialty: formData.specialty,
+            bio: formData.bio,
+            consultation_fee: formData.consultationFee,
+            years_experience: formData.yearsExperience,
+            education: formData.education,
+            languages: formData.languages,
+            avatar_url: formData.avatarUrl
+          }
         }
       });
 
@@ -103,36 +114,6 @@ const AdminDashboard = () => {
       if (!authData.user) {
         throw new Error('No se pudo crear el usuario');
       }
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          role: 'doctor',
-          phone: formData.phone || null,
-          avatar_url: formData.avatarUrl || null
-        });
-
-      if (profileError) throw profileError;
-
-      // Create doctor record
-      const { error: doctorError } = await supabase
-        .from('doctors')
-        .insert({
-          id: authData.user.id,
-          specialty: formData.specialty,
-          bio: formData.bio || null,
-          consultation_fee: formData.consultationFee ? parseFloat(formData.consultationFee) : null,
-          years_experience: formData.yearsExperience ? parseInt(formData.yearsExperience) : null,
-          education: formData.education || null,
-          languages: formData.languages ? formData.languages.split(',').map(l => l.trim()) : null
-        });
-
-      if (doctorError) throw doctorError;
 
       toast.success('Doctor creado exitosamente');
       
