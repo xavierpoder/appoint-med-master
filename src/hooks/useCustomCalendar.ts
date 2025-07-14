@@ -117,7 +117,7 @@ export const useCustomCalendar = () => {
           id,
           time,
           patient_id,
-          patient_view!inner(first_name, last_name, phone, email)
+          profiles!inner(first_name, last_name, phone, email)
         `)
         .eq('doctor_id', targetDoctorId)
         .gte('time', startOfDay)
@@ -125,12 +125,14 @@ export const useCustomCalendar = () => {
 
       if (error) throw error;
 
+      console.log('Appointments data from DB:', data); // Debug log
+
       const formattedAppointments = data.map((appointment: any) => ({
         id: appointment.id,
         time: appointment.time,
-        patientName: `${appointment.patient_view.first_name} ${appointment.patient_view.last_name}`,
-        patientPhone: appointment.patient_view.phone,
-        patientEmail: appointment.patient_view.email,
+        patientName: `${appointment.profiles.first_name} ${appointment.profiles.last_name}`,
+        patientPhone: appointment.profiles.phone,
+        patientEmail: appointment.profiles.email,
         patient_id: appointment.patient_id,
         startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
           hour: '2-digit', 
@@ -144,6 +146,7 @@ export const useCustomCalendar = () => {
         })
       }));
 
+      console.log('Formatted appointments:', formattedAppointments); // Debug log
       setAppointments(formattedAppointments);
     } catch (error) {
       console.error('Error fetching appointments:', error);

@@ -88,13 +88,15 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   };
 
   const isSlotBooked = (slot: any) => {
-    return appointments.some(appointment => {
+    const isBooked = appointments.some(appointment => {
       const appointmentTime = new Date(appointment.time);
       const slotStart = new Date(slot.start);
-      const slotEnd = new Date(slot.end);
+      console.log('Comparing appointment:', appointmentTime.toISOString(), 'with slot:', slotStart.toISOString()); // Debug log
       // Check if appointment time matches the slot start time exactly
       return appointmentTime.getTime() === slotStart.getTime();
     });
+    console.log('Slot booked status:', isBooked, 'for slot:', slot.startTime); // Debug log
+    return isBooked;
   };
 
   const getPatientNameForSlot = (slot: any) => {
