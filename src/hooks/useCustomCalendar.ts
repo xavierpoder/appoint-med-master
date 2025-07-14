@@ -120,7 +120,7 @@ export const useCustomCalendar = () => {
           time,
           patient_id,
           status,
-          profiles!appointments_patient_id_fkey(first_name, last_name, phone, email)
+          profiles!patient_id(first_name, last_name, phone, email)
         `)
         .eq('doctor_id', targetDoctorId)
         .gte('time', startOfDay)
@@ -134,24 +134,49 @@ export const useCustomCalendar = () => {
 
       console.log('Raw appointments data from DB:', data);
 
-      const formattedAppointments = data.map((appointment: any) => ({
-        id: appointment.id,
-        time: appointment.time,
-        patientName: `${appointment.profiles.first_name} ${appointment.profiles.last_name}`,
-        patientPhone: appointment.profiles.phone,
-        patientEmail: appointment.profiles.email,
-        patient_id: appointment.patient_id,
-        startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          timeZone: 'UTC'
-        }),
-        endTime: new Date(new Date(appointment.time).getTime() + 60 * 60 * 1000).toLocaleTimeString('es-ES', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          timeZone: 'UTC'
-        })
-      }));
+      const formattedAppointments = data.map((appointment: any) => {
+        const profile = appointment.profiles;
+        if (!profile) {
+          console.warn('No profile found for patient_id:', appointment.patient_id);
+          return {
+            id: appointment.id,
+            time: appointment.time,
+            patientName: 'Paciente sin perfil',
+            patientPhone: '',
+            patientEmail: '',
+            patient_id: appointment.patient_id,
+            startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'UTC'
+            }),
+            endTime: new Date(new Date(appointment.time).getTime() + 60 * 60 * 1000).toLocaleTimeString('es-ES', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'UTC'
+            })
+          };
+        }
+        
+        return {
+          id: appointment.id,
+          time: appointment.time,
+          patientName: `${profile.first_name} ${profile.last_name}`,
+          patientPhone: profile.phone || '',
+          patientEmail: profile.email || '',
+          patient_id: appointment.patient_id,
+          startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'UTC'
+          }),
+          endTime: new Date(new Date(appointment.time).getTime() + 60 * 60 * 1000).toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'UTC'
+          })
+        };
+      });
 
       console.log('Formatted appointments:', formattedAppointments);
       setAppointments(formattedAppointments);
