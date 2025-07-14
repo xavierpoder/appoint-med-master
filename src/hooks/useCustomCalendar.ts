@@ -120,7 +120,7 @@ export const useCustomCalendar = () => {
           time,
           patient_id,
           status,
-          profiles(first_name, last_name, phone, email)
+          profiles!appointments_patient_id_fkey(first_name, last_name, phone, email)
         `)
         .eq('doctor_id', targetDoctorId)
         .gte('time', startOfDay)
