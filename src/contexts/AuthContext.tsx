@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Detectar admin por email o buscar en profiles
           setTimeout(async () => {
-            const adminEmail = 'admin@clinicamaster.com'; // Email del administrador
+            const adminEmail = 'latitudceroimportaciones@hotmail.com'; // Email del administrador
             
             if (session.user.email === adminEmail) {
               setUserRole('admin');
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const adminEmail = 'admin@clinicamaster.com';
+        const adminEmail = 'latitudceroimportaciones@hotmail.com';
         
         if (session.user.email === adminEmail) {
           setUserRole('admin');
