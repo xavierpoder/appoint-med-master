@@ -111,21 +111,28 @@ export const useCustomCalendar = () => {
       const startOfDay = `${date}T00:00:00.000Z`;
       const endOfDay = `${date}T23:59:59.999Z`;
 
+      console.log('Fetching appointments for doctor:', targetDoctorId, 'date range:', startOfDay, 'to', endOfDay);
+
       const { data, error } = await supabase
         .from('appointments')
         .select(`
           id,
           time,
           patient_id,
-          profiles!inner(first_name, last_name, phone, email)
+          status,
+          profiles!appointments_patient_id_fkey(first_name, last_name, phone, email)
         `)
         .eq('doctor_id', targetDoctorId)
         .gte('time', startOfDay)
-        .lte('time', endOfDay);
+        .lte('time', endOfDay)
+        .eq('status', 'scheduled');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
-      console.log('Appointments data from DB:', data); // Debug log
+      console.log('Raw appointments data from DB:', data);
 
       const formattedAppointments = data.map((appointment: any) => ({
         id: appointment.id,
@@ -146,7 +153,7 @@ export const useCustomCalendar = () => {
         })
       }));
 
-      console.log('Formatted appointments:', formattedAppointments); // Debug log
+      console.log('Formatted appointments:', formattedAppointments);
       setAppointments(formattedAppointments);
     } catch (error) {
       console.error('Error fetching appointments:', error);
