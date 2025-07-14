@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Calendar, Search, User, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import CustomCalendar from "@/components/calendar/CustomCalendar";
 
 interface Doctor {
   id: string;
@@ -26,7 +27,7 @@ const PatientDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState<'specialty' | 'doctor'>('specialty');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<string>("");
+  const [selectedSlot, setSelectedSlot] = useState<any>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -63,15 +64,37 @@ const PatientDashboard = () => {
     }
   });
 
-  const handleBookAppointment = () => {
+  const handleSlotSelect = (slot: any) => {
+    setSelectedSlot(slot);
+    console.log('Slot seleccionado:', slot);
+  };
+
+  const handleBookAppointment = async () => {
     if (!selectedDoctor || !selectedSlot) {
       toast.error("Por favor selecciona un doctor y horario");
       return;
     }
 
-    toast.success(`Cita agendada con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name} a las ${selectedSlot}`);
-    setSelectedDoctor(null);
-    setSelectedSlot("");
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .insert({
+          doctor_id: selectedDoctor.id,
+          patient_id: (await supabase.auth.getUser()).data.user?.id,
+          time: selectedSlot.start,
+          specialty: selectedDoctor.specialty,
+          status: 'scheduled'
+        });
+
+      if (error) throw error;
+
+      toast.success(`Cita agendada con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}`);
+      setSelectedDoctor(null);
+      setSelectedSlot(null);
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      toast.error('Error al agendar la cita');
+    }
   };
 
   return (
@@ -210,11 +233,11 @@ const PatientDashboard = () => {
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
                   <h4 className="font-medium text-gray-900 mb-4">Horarios disponibles:</h4>
-                  <div className="text-center py-8 text-gray-500">
-                    <Clock className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                    <p>Los horarios se mostrarán después de integrar con el calendario del doctor</p>
-                    <p className="text-sm">Por ahora, puedes contactar directamente al doctor</p>
-                  </div>
+                  <CustomCalendar 
+                    viewMode="patient" 
+                    onSlotSelect={handleSlotSelect}
+                    doctorId={selectedDoctor.id}
+                  />
                 </div>
                 
                 <div className="space-y-4">
@@ -235,12 +258,21 @@ const PatientDashboard = () => {
                     </div>
                   </div>
                   
+                  {selectedSlot && (
+                    <div className="p-3 bg-green-50 rounded-lg mb-4">
+                      <p className="text-sm text-green-800">
+                        <strong>Horario seleccionado:</strong> {selectedSlot.startTime} - {selectedSlot.endTime}
+                      </p>
+                    </div>
+                  )}
+                  
                   <Button
-                    onClick={() => toast.info('Funcionalidad de agendamiento en desarrollo')}
-                    className="w-full bg-green-600 hover:bg-green-700 py-3 text-lg"
+                    onClick={handleBookAppointment}
+                    disabled={!selectedSlot}
+                    className="w-full bg-green-600 hover:bg-green-700 py-3 text-lg disabled:opacity-50"
                   >
                     <Calendar className="h-5 w-5 mr-2" />
-                    Solicitar Cita
+                    {selectedSlot ? 'Confirmar Cita' : 'Selecciona un horario'}
                   </Button>
                 </div>
               </div>

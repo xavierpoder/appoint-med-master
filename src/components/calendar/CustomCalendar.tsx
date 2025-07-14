@@ -9,11 +9,13 @@ import { useAuth } from '@/contexts/AuthContext';
 interface CustomCalendarProps {
   viewMode?: 'doctor' | 'patient';
   onSlotSelect?: (slot: any) => void;
+  doctorId?: string;
 }
 
 const CustomCalendar: React.FC<CustomCalendarProps> = ({ 
   viewMode = 'doctor', 
-  onSlotSelect 
+  onSlotSelect,
+  doctorId 
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -22,11 +24,11 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
 
   useEffect(() => {
     const dateStr = selectedDate.toISOString().split('T')[0];
-    fetchAvailabilitySlots(dateStr);
+    fetchAvailabilitySlots(dateStr, doctorId);
     if (viewMode === 'doctor') {
       fetchAppointments(dateStr);
     }
-  }, [selectedDate, fetchAvailabilitySlots, fetchAppointments, viewMode]);
+  }, [selectedDate, fetchAvailabilitySlots, fetchAppointments, viewMode, doctorId]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();

@@ -36,8 +36,9 @@ export const useCustomCalendar = () => {
     }
   }, [user?.id]);
 
-  const fetchAvailabilitySlots = useCallback(async (date: string) => {
-    if (!user?.id) return;
+  const fetchAvailabilitySlots = useCallback(async (date: string, doctorId?: string) => {
+    const targetDoctorId = doctorId || user?.id;
+    if (!targetDoctorId) return;
     
     setLoading(true);
     try {
@@ -47,7 +48,7 @@ export const useCustomCalendar = () => {
       const { data, error } = await supabase
         .from('availability_slots')
         .select('*')
-        .eq('doctor_id', user.id)
+        .eq('doctor_id', targetDoctorId)
         .gte('start_time', startOfDay)
         .lte('start_time', endOfDay)
         .eq('is_available', true)
