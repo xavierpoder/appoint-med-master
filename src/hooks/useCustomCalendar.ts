@@ -63,11 +63,13 @@ export const useCustomCalendar = () => {
         end: new Date(slot.end_time),
         startTime: new Date(slot.start_time).toLocaleTimeString('es-ES', { 
           hour: '2-digit', 
-          minute: '2-digit' 
+          minute: '2-digit',
+          timeZone: 'UTC'
         }),
         endTime: new Date(slot.end_time).toLocaleTimeString('es-ES', { 
           hour: '2-digit', 
-          minute: '2-digit' 
+          minute: '2-digit',
+          timeZone: 'UTC'
         }),
         doctor_id: slot.doctor_id,
         is_available: slot.is_available
