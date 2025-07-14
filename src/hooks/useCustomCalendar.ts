@@ -136,6 +136,25 @@ export const useCustomCalendar = () => {
     }
   }, []);
 
+  const deleteAllAvailabilitySlots = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('availability_slots')
+        .delete()
+        .eq('doctor_id', user.id);
+
+      if (error) throw error;
+      
+      toast.success('Todos los horarios han sido eliminados exitosamente');
+    } catch (error) {
+      console.error('Error deleting all slots:', error);
+      toast.error('Error al eliminar los horarios');
+      throw error;
+    }
+  }, [user?.id]);
+
   return {
     loading,
     events,
@@ -143,6 +162,7 @@ export const useCustomCalendar = () => {
     createAvailabilitySlot,
     fetchAvailabilitySlots,
     fetchAppointments,
-    deleteAvailabilitySlot
+    deleteAvailabilitySlot,
+    deleteAllAvailabilitySlots
   };
 };

@@ -4,10 +4,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, Plus, Trash2, Save, CalendarDays } from 'lucide-react';
+import { Calendar, Clock, Plus, Trash2, Save, CalendarDays, AlertTriangle } from 'lucide-react';
 import { useCustomCalendar } from '@/hooks/useCustomCalendar';
 import DaySelector from '@/components/availability/DaySelector';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const AvailabilityManager = () => {
   const [startDate, setStartDate] = useState('');
@@ -15,7 +26,7 @@ const AvailabilityManager = () => {
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
-  const { createAvailabilitySlot, loading } = useCustomCalendar();
+  const { createAvailabilitySlot, deleteAllAvailabilitySlots, loading } = useCustomCalendar();
 
   const generateDatesInRange = (start: string, end: string, selectedDays: number[]): string[] => {
     const dates: string[] = [];
@@ -29,6 +40,20 @@ const AvailabilityManager = () => {
     }
     
     return dates;
+  };
+
+  const handleDeleteAllSlots = async () => {
+    try {
+      await deleteAllAvailabilitySlots();
+      // Reset form after successful deletion
+      setStartDate('');
+      setEndDate('');
+      setSelectedDays([]);
+      setStartTime('');
+      setEndTime('');
+    } catch (error) {
+      // Error is already handled in the hook
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,19 +194,56 @@ const AvailabilityManager = () => {
             </div>
           )}
           
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? (
-              <>
-                <Clock className="mr-2 h-4 w-4 animate-spin" />
-                Creando disponibilidad...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Crear Disponibilidad para Múltiples Días
-              </>
-            )}
-          </Button>
+          <div className="flex gap-4">
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? (
+                <>
+                  <Clock className="mr-2 h-4 w-4 animate-spin" />
+                  Creando disponibilidad...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Crear Disponibilidad
+                </>
+              )}
+            </Button>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={loading}
+                  className="px-4"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    ¿Eliminar todos los horarios?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción eliminará permanentemente todos tus horarios de disponibilidad. 
+                    No podrás recuperar esta información una vez eliminada.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAllSlots}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Eliminar Todo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </form>
       </CardContent>
     </Card>
