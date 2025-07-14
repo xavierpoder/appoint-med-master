@@ -92,8 +92,8 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
       const appointmentTime = new Date(appointment.time);
       const slotStart = new Date(slot.start);
       const slotEnd = new Date(slot.end);
-      // Check if appointment overlaps with this 1-hour slot
-      return appointmentTime >= slotStart && appointmentTime < slotEnd;
+      // Check if appointment time matches the slot start time exactly
+      return appointmentTime.getTime() === slotStart.getTime();
     });
   };
 
@@ -101,9 +101,19 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
     const appointment = appointments.find(appointment => {
       const appointmentTime = new Date(appointment.time);
       const slotStart = new Date(slot.start);
-      return Math.abs(appointmentTime.getTime() - slotStart.getTime()) < 60000;
+      // Match exact appointment time with slot start time
+      return appointmentTime.getTime() === slotStart.getTime();
     });
     return appointment ? appointment.patientName : 'Paciente';
+  };
+
+  const getAppointmentForSlot = (slot: any) => {
+    return appointments.find(appointment => {
+      const appointmentTime = new Date(appointment.time);
+      const slotStart = new Date(slot.start);
+      // Match exact appointment time with slot start time
+      return appointmentTime.getTime() === slotStart.getTime();
+    });
   };
 
   const days = getDaysInMonth(currentDate);
@@ -245,11 +255,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
                               {getPatientNameForSlot(event)}
                             </p>
                             {(() => {
-                              const appointment = appointments.find(appointment => {
-                                const appointmentTime = new Date(appointment.time);
-                                const slotStart = new Date(event.start);
-                                return Math.abs(appointmentTime.getTime() - slotStart.getTime()) < 60000;
-                              });
+                              const appointment = getAppointmentForSlot(event);
                               return appointment && (
                                 <div className="text-xs text-muted-foreground space-y-0.5">
                                   {appointment.patientPhone && (
