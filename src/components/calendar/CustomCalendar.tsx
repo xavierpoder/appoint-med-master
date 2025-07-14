@@ -80,9 +80,11 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   };
 
   const hasAvailabilityOnDate = (date: Date) => {
-    // This would need to be implemented based on your data structure
-    // For now, returning false to avoid errors
-    return false;
+    const dateStr = date.toISOString().split('T')[0];
+    return events.some(event => {
+      const eventDate = new Date(event.start).toISOString().split('T')[0];
+      return eventDate === dateStr;
+    });
   };
 
   const isSlotBooked = (slot: any) => {
