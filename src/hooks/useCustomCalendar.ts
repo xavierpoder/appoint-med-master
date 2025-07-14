@@ -51,7 +51,7 @@ export const useCustomCalendar = () => {
         .eq('doctor_id', targetDoctorId)
         .gte('start_time', startOfDay)
         .lte('start_time', endOfDay)
-        .eq('is_available', true)
+        .eq('is_available', true) // Only show available slots
         .order('start_time');
 
       if (error) throw error;
@@ -69,6 +69,8 @@ export const useCustomCalendar = () => {
           hour: '2-digit', 
           minute: '2-digit' 
         }),
+        doctor_id: slot.doctor_id,
+        is_available: slot.is_available
       }));
 
       setEvents(formattedEvents);

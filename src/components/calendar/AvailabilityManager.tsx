@@ -44,6 +44,21 @@ const AvailabilityManager = () => {
       return;
     }
 
+    if (startTime >= endTime) {
+      toast.error('La hora de fin debe ser posterior a la hora de inicio');
+      return;
+    }
+
+    // Validate that slots are at least 60 minutes
+    const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+    const endMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+    const durationMinutes = endMinutes - startMinutes;
+    
+    if (durationMinutes < 60) {
+      toast.error('Los horarios deben tener una duración mínima de 60 minutos');
+      return;
+    }
+
     try {
       const datesToCreate = generateDatesInRange(startDate, endDate, selectedDays);
       

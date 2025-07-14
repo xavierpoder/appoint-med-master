@@ -76,24 +76,46 @@ const PatientDashboard = () => {
     }
 
     try {
-      const { error } = await supabase
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        toast.error("Debes iniciar sesión para agendar una cita");
+        return;
+      }
+
+      // Create the appointment
+      const { error: appointmentError } = await supabase
         .from('appointments')
         .insert({
           doctor_id: selectedDoctor.id,
-          patient_id: (await supabase.auth.getUser()).data.user?.id,
+          patient_id: user.user.id,
           time: selectedSlot.start,
           specialty: selectedDoctor.specialty,
-          status: 'scheduled'
+          status: 'scheduled',
+          duration_minutes: 60, // 60 minutes minimum
+          notes: `Cita agendada con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}`
         });
 
-      if (error) throw error;
+      if (appointmentError) throw appointmentError;
 
-      toast.success(`Cita agendada con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}`);
+      // Mark the availability slot as unavailable
+      const { error: slotError } = await supabase
+        .from('availability_slots')
+        .update({ is_available: false })
+        .eq('id', selectedSlot.id);
+
+      if (slotError) throw slotError;
+
+      toast.success(`Cita agendada exitosamente con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}`);
       setSelectedDoctor(null);
       setSelectedSlot(null);
+      
+      // Refresh the availability to show updated slots
+      const dateStr = new Date().toISOString().split('T')[0];
+      // This will be handled by the calendar component refresh
+      
     } catch (error) {
       console.error('Error booking appointment:', error);
-      toast.error('Error al agendar la cita');
+      toast.error('Error al agendar la cita. Por favor intenta nuevamente.');
     }
   };
 
@@ -263,13 +285,16 @@ const PatientDashboard = () => {
                       <p className="text-sm text-green-800">
                         <strong>Horario seleccionado:</strong> {selectedSlot.startTime} - {selectedSlot.endTime}
                       </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Duración: 60 minutos
+                      </p>
                     </div>
                   )}
                   
                   <Button
                     onClick={handleBookAppointment}
                     disabled={!selectedSlot}
-                    className="w-full bg-green-600 hover:bg-green-700 py-3 text-lg disabled:opacity-50"
+                    className="w-full bg-green-600 hover:bg-green-700 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Calendar className="h-5 w-5 mr-2" />
                     {selectedSlot ? 'Confirmar Cita' : 'Selecciona un horario'}
