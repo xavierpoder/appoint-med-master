@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Shield, UserPlus, Users, Eye, EyeOff, Trash2, Edit, Save, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -193,23 +193,7 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       
-      // Use admin API to update user metadata and then update tables directly
-      const { error: userError } = await supabase.auth.admin.updateUserById(
-        editingDoctor.id,
-        {
-          email: editForm.email,
-          user_metadata: {
-            first_name: editForm.first_name,
-            last_name: editForm.last_name,
-            phone: editForm.phone,
-            avatar_url: editForm.avatar_url
-          }
-        }
-      );
-
-      if (userError) throw userError;
-
-      // Update profile table (admin should have access through service role)
+      // Update profile table directly
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -223,8 +207,8 @@ const AdminDashboard = () => {
         .eq('id', editingDoctor.id);
 
       if (profileError) {
-        console.warn('Profile update error (might be RLS):', profileError);
-        // Continue anyway as admin API update might be sufficient
+        console.error('Profile update error:', profileError);
+        // Continue to try doctor update even if profile fails
       }
 
       // Update doctor info
@@ -242,8 +226,8 @@ const AdminDashboard = () => {
         .eq('id', editingDoctor.id);
 
       if (doctorError) {
-        console.warn('Doctor update error (might be RLS):', doctorError);
-        // Continue anyway
+        console.error('Doctor update error:', doctorError);
+        throw doctorError;
       }
 
       toast.success('Perfil del doctor actualizado exitosamente');
@@ -552,6 +536,9 @@ const AdminDashboard = () => {
                             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Editar Doctor: Dr. {doctor.first_name} {doctor.last_name}</DialogTitle>
+                                <DialogDescription>
+                                  Modifica la información del perfil del doctor
+                                </DialogDescription>
                               </DialogHeader>
                               {editingDoctor?.id === doctor.id && (
                                 <div className="space-y-4">
