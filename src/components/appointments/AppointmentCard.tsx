@@ -44,12 +44,16 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, onClick 
   };
 
   const formatTime = (timeString: string) => {
-    // Si ya es un tiempo formateado (ej: "10:15"), devolverlo tal como está
-    if (timeString && timeString.match(/^\d{2}:\d{2}$/)) {
+    // Si ya es un tiempo formateado (ej: "10:15 - 11:15"), devolverlo tal como está
+    if (timeString && (timeString.match(/^\d{2}:\d{2}$/) || timeString.match(/^\d{2}:\d{2} - \d{2}:\d{2}$/))) {
       return timeString;
     }
     // Si es una fecha completa, formatearla
-    return new Date(timeString).toLocaleTimeString('es-ES', {
+    const date = new Date(timeString);
+    if (isNaN(date.getTime())) {
+      return 'Hora no disponible';
+    }
+    return date.toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false

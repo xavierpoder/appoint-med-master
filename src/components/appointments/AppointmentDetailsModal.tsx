@@ -88,15 +88,22 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({
                     <h3 className="font-semibold text-lg">{appointment.patientName}</h3>
                     <p className="text-sm text-muted-foreground">
                       <Clock className="w-4 h-4 inline mr-1" />
-                      {appointment.originalTime ? 
-                        new Date(appointment.originalTime).toLocaleString('es-ES', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 
+                      {appointment.originalTime ? (() => {
+                        // Extraer fecha y hora sin conversión de zona horaria
+                        const dateStr = appointment.originalTime.split('T')[0]; // "2025-07-15"
+                        const timeStr = appointment.originalTime.split('T')[1].substring(0, 5); // "10:15"
+                        const [year, month, day] = dateStr.split('-');
+                        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                        
+                        const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
+                        const formattedDate = date.toLocaleDateString('es-ES', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        });
+                        
+                        return `${dayName}, ${formattedDate}, ${timeStr}`;
+                      })() : 
                         `Hoy de ${appointment.time}`
                       }
                     </p>
@@ -119,12 +126,10 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({
               <CardContent className="p-4">
                 <h4 className="font-medium mb-3">Información de Contacto</h4>
                 <div className="space-y-2">
-                  {appointment.patientDetails.id && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span>ID: {appointment.patientDetails.id}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span><strong>Paciente:</strong> {appointment.patientDetails.firstName} {appointment.patientDetails.lastName}</span>
+                  </div>
                   
                   {appointment.patientDetails.phone && (
                     <div className="flex items-center gap-2 text-sm">
