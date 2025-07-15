@@ -34,6 +34,11 @@ const DoctorDashboard = () => {
       if (user && userRole === 'doctor') {
         setLoadingAppointments(true);
         try {
+          // Get today's date range
+          const today = new Date();
+          const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+          const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+
           const { data, error } = await supabase
             .from('appointments')
             .select(`
@@ -41,22 +46,46 @@ const DoctorDashboard = () => {
               time,
               specialty,
               status,
-              patient_view!inner(first_name, last_name)
+              patient_id
             `)
-            .eq('doctor_id', user.id);
+            .eq('doctor_id', user.id)
+            .gte('time', startOfDay)
+            .lte('time', endOfDay)
+            .eq('status', 'scheduled');
 
           if (error) {
             console.error("Error fetching appointments:", error);
             toast.error("Error al cargar las citas.");
           } else {
             console.log("Appointments fetched successfully:", data);
-            setAppointments(data.map((appt: any) => ({
-              id: appt.id,
-              patientName: `${appt.patient_view.first_name} ${appt.patient_view.last_name}`,
-              time: appt.time,
-              specialty: appt.specialty,
-              status: appt.status,
-            })));
+            
+            // Get patient IDs to fetch their profiles
+            const patientIds = data.map(appt => appt.patient_id).filter(id => id);
+            let patientProfiles = [];
+            
+            if (patientIds.length > 0) {
+              const { data: profilesData, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name, phone, email')
+                .in('id', patientIds);
+                
+              if (profilesError) {
+                console.error('Error fetching patient profiles:', profilesError);
+              } else {
+                patientProfiles = profilesData || [];
+              }
+            }
+            
+            setAppointments(data.map((appt: any) => {
+              const profile = patientProfiles.find((p: any) => p.id === appt.patient_id);
+              return {
+                id: appt.id,
+                patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
+                time: appt.time,
+                specialty: appt.specialty,
+                status: appt.status,
+              };
+            }));
           }
         } catch (error) {
           console.error("Error fetching appointments:", error);

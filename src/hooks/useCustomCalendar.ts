@@ -160,6 +160,8 @@ export const useCustomCalendar = () => {
       const formattedAppointments = data.map((appointment: any) => {
         const profile = profiles.find((p: any) => p.id === appointment.patient_id);
         
+        console.log('Processing appointment:', appointment.id, 'patient_id:', appointment.patient_id, 'found profile:', profile);
+        
         if (!profile) {
           console.warn('No profile found for patient_id:', appointment.patient_id);
           return {
@@ -185,7 +187,7 @@ export const useCustomCalendar = () => {
         return {
           id: appointment.id,
           time: appointment.time,
-          patientName: `${profile.first_name} ${profile.last_name}`,
+          patientName: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
           patientPhone: profile.phone || '',
           patientEmail: profile.email || '',
           patient_id: appointment.patient_id,
