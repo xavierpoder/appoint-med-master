@@ -9,7 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Shield, UserPlus, Users, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Shield, UserPlus, Users, Eye, EyeOff, Trash2, Edit, Save, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -34,6 +36,8 @@ const AdminDashboard = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Doctor>>({});
   
   // Form state for new doctor
   const [formData, setFormData] = useState({
@@ -149,6 +153,94 @@ const AdminDashboard = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDeleteDoctor = async (doctorId: string, doctorName: string) => {
+    try {
+      // Delete from auth.users which will cascade to profiles and doctors tables
+      const { error } = await supabase.auth.admin.deleteUser(doctorId);
+      
+      if (error) throw error;
+      
+      toast.success(`Doctor ${doctorName} eliminado exitosamente`);
+      fetchDoctors();
+    } catch (error: any) {
+      console.error('Error deleting doctor:', error);
+      toast.error('Error al eliminar el doctor');
+    }
+  };
+
+  const handleEditDoctor = (doctor: Doctor) => {
+    setEditingDoctor(doctor);
+    setEditForm({
+      first_name: doctor.first_name,
+      last_name: doctor.last_name,
+      email: doctor.email,
+      phone: doctor.phone,
+      specialty: doctor.specialty,
+      bio: doctor.bio,
+      consultation_fee: doctor.consultation_fee,
+      years_experience: doctor.years_experience,
+      education: doctor.education,
+      languages: doctor.languages,
+      avatar_url: doctor.avatar_url
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingDoctor) return;
+    
+    try {
+      setLoading(true);
+      
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: editForm.first_name,
+          last_name: editForm.last_name,
+          email: editForm.email,
+          phone: editForm.phone,
+          avatar_url: editForm.avatar_url
+        })
+        .eq('id', editingDoctor.id);
+
+      if (profileError) throw profileError;
+
+      // Update doctor info
+      const { error: doctorError } = await supabase
+        .from('doctors')
+        .update({
+          specialty: editForm.specialty,
+          bio: editForm.bio,
+          consultation_fee: editForm.consultation_fee,
+          years_experience: editForm.years_experience,
+          education: editForm.education,
+          languages: editForm.languages
+        })
+        .eq('id', editingDoctor.id);
+
+      if (doctorError) throw doctorError;
+
+      toast.success('Perfil del doctor actualizado exitosamente');
+      setEditingDoctor(null);
+      setEditForm({});
+      fetchDoctors();
+    } catch (error: any) {
+      console.error('Error updating doctor:', error);
+      toast.error('Error al actualizar el perfil del doctor');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditInputChange = (field: string, value: string | number | null | string[]) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleLanguagesChange = (languagesString: string) => {
+    const languagesArray = languagesString.split(',').map(l => l.trim()).filter(l => l.length > 0);
+    handleEditInputChange('languages', languagesArray);
   };
 
   if (userRole !== 'admin') {
@@ -411,6 +503,196 @@ const AdminDashboard = () => {
                               {doctor.years_experience} años de experiencia
                             </p>
                           )}
+                          {doctor.consultation_fee && (
+                            <p className="text-xs text-green-600">
+                              ${doctor.consultation_fee} USD
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditDoctor(doctor)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Editar Doctor: Dr. {doctor.first_name} {doctor.last_name}</DialogTitle>
+                              </DialogHeader>
+                              {editingDoctor?.id === doctor.id && (
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <Label>Nombre</Label>
+                                      <Input
+                                        value={editForm.first_name || ''}
+                                        onChange={(e) => handleEditInputChange('first_name', e.target.value)}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label>Apellido</Label>
+                                      <Input
+                                        value={editForm.last_name || ''}
+                                        onChange={(e) => handleEditInputChange('last_name', e.target.value)}
+                                      />
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <Label>Email</Label>
+                                    <Input
+                                      type="email"
+                                      value={editForm.email || ''}
+                                      onChange={(e) => handleEditInputChange('email', e.target.value)}
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label>Teléfono</Label>
+                                    <Input
+                                      value={editForm.phone || ''}
+                                      onChange={(e) => handleEditInputChange('phone', e.target.value)}
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label>Especialidad</Label>
+                                    <Select 
+                                      value={editForm.specialty || ''} 
+                                      onValueChange={(value) => handleEditInputChange('specialty', value)}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Cardiología">Cardiología</SelectItem>
+                                        <SelectItem value="Pediatría">Pediatría</SelectItem>
+                                        <SelectItem value="Dermatología">Dermatología</SelectItem>
+                                        <SelectItem value="Medicina General">Medicina General</SelectItem>
+                                        <SelectItem value="Ginecología">Ginecología</SelectItem>
+                                        <SelectItem value="Neurología">Neurología</SelectItem>
+                                        <SelectItem value="Psiquiatría">Psiquiatría</SelectItem>
+                                        <SelectItem value="Oftalmología">Oftalmología</SelectItem>
+                                        <SelectItem value="Ortopedia">Ortopedia</SelectItem>
+                                        <SelectItem value="Urología">Urología</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <Label>Años de Experiencia</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        value={editForm.years_experience || ''}
+                                        onChange={(e) => handleEditInputChange('years_experience', parseInt(e.target.value) || null)}
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label>Tarifa de Consulta (USD)</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="5"
+                                        value={editForm.consultation_fee || ''}
+                                        onChange={(e) => handleEditInputChange('consultation_fee', parseFloat(e.target.value) || null)}
+                                      />
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <Label>URL de Foto de Perfil</Label>
+                                    <Input
+                                      type="url"
+                                      value={editForm.avatar_url || ''}
+                                      onChange={(e) => handleEditInputChange('avatar_url', e.target.value)}
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label>Educación</Label>
+                                    <Input
+                                      value={editForm.education || ''}
+                                      onChange={(e) => handleEditInputChange('education', e.target.value)}
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label>Idiomas (separados por coma)</Label>
+                                     <Input
+                                       value={editForm.languages?.join(', ') || ''}
+                                       onChange={(e) => handleLanguagesChange(e.target.value)}
+                                     />
+                                  </div>
+                                  
+                                  <div>
+                                    <Label>Biografía</Label>
+                                    <Textarea
+                                      value={editForm.bio || ''}
+                                      onChange={(e) => handleEditInputChange('bio', e.target.value)}
+                                      rows={3}
+                                    />
+                                  </div>
+                                  
+                                  <div className="flex justify-end space-x-2 pt-4">
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingDoctor(null);
+                                        setEditForm({});
+                                      }}
+                                    >
+                                      <X className="h-4 w-4 mr-2" />
+                                      Cancelar
+                                    </Button>
+                                    <Button
+                                      onClick={handleSaveEdit}
+                                      disabled={loading}
+                                    >
+                                      <Save className="h-4 w-4 mr-2" />
+                                      {loading ? 'Guardando...' : 'Guardar'}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  ¿Estás seguro de que quieres eliminar al Dr. {doctor.first_name} {doctor.last_name}? 
+                                  Esta acción no se puede deshacer y eliminará toda la información del doctor.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteDoctor(doctor.id, `${doctor.first_name} ${doctor.last_name}`)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     ))}
