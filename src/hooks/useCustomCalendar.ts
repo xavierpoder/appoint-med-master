@@ -119,8 +119,7 @@ export const useCustomCalendar = () => {
           id,
           time,
           patient_id,
-          status,
-          profiles!patient_id(first_name, last_name, phone, email)
+          status
         `)
         .eq('doctor_id', targetDoctorId)
         .gte('time', startOfDay)
@@ -134,8 +133,29 @@ export const useCustomCalendar = () => {
 
       console.log('Raw appointments data from DB:', data);
 
+      // Obtener los IDs únicos de pacientes
+      const patientIds = data.map(appointment => appointment.patient_id).filter(id => id);
+      
+      // Obtener los perfiles de los pacientes
+      let profiles = [];
+      if (patientIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, phone, email')
+          .in('id', patientIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+        } else {
+          profiles = profilesData || [];
+        }
+      }
+
+      console.log('Profiles data:', profiles);
+
       const formattedAppointments = data.map((appointment: any) => {
-        const profile = appointment.profiles;
+        const profile = profiles.find((p: any) => p.id === appointment.patient_id);
+        
         if (!profile) {
           console.warn('No profile found for patient_id:', appointment.patient_id);
           return {
