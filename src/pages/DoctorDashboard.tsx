@@ -85,7 +85,7 @@ const DoctorDashboard = () => {
               return {
                 id: appt.id,
                 patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
-                time: new Date(appt.time).toLocaleTimeString('es-ES', { 
+                time: appointmentTime.toLocaleTimeString('es-ES', { 
                   hour: '2-digit', 
                   minute: '2-digit',
                   hour12: false
