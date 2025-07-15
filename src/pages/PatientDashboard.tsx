@@ -219,7 +219,7 @@ const PatientDashboard = () => {
                       )}
                       {doctor.consultation_fee && (
                         <p className="text-sm text-blue-600 font-medium">
-                          ${doctor.consultation_fee.toLocaleString()} COP
+                          ${doctor.consultation_fee.toLocaleString()} USD
                         </p>
                       )}
                     </div>
@@ -272,9 +272,9 @@ const PatientDashboard = () => {
                       {selectedDoctor.years_experience && (
                         <p><strong>Experiencia:</strong> {selectedDoctor.years_experience} años</p>
                       )}
-                      {selectedDoctor.consultation_fee && (
-                        <p><strong>Tarifa:</strong> ${selectedDoctor.consultation_fee.toLocaleString()} COP</p>
-                      )}
+                       {selectedDoctor.consultation_fee && (
+                         <p><strong>Tarifa:</strong> ${selectedDoctor.consultation_fee.toLocaleString()} USD</p>
+                       )}
                       {selectedDoctor.education && (
                         <p><strong>Educación:</strong> {selectedDoctor.education}</p>
                       )}
