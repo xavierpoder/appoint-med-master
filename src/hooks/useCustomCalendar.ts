@@ -135,14 +135,18 @@ export const useCustomCalendar = () => {
 
       // Obtener los IDs únicos de pacientes
       const patientIds = data.map(appointment => appointment.patient_id).filter(id => id);
+      console.log('Patient IDs to fetch:', patientIds);
       
       // Obtener los perfiles de los pacientes
       let profiles = [];
       if (patientIds.length > 0) {
+        console.log('Fetching profiles for patient IDs:', patientIds);
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, phone, email')
           .in('id', patientIds);
+
+        console.log('Profiles query result:', { profilesData, profilesError });
 
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
@@ -151,7 +155,7 @@ export const useCustomCalendar = () => {
         }
       }
 
-      console.log('Profiles data:', profiles);
+      console.log('Final profiles data:', profiles);
 
       const formattedAppointments = data.map((appointment: any) => {
         const profile = profiles.find((p: any) => p.id === appointment.patient_id);
