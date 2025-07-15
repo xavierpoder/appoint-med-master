@@ -78,34 +78,35 @@ const DoctorDashboard = () => {
             }
             console.log("Final profiles data:", patientProfiles);
             
-            setAppointments(data.map((appt: any) => {
+            const formattedAppointments = data.map((appt: any) => {
               const profile = patientProfiles.find((p: any) => p.id === appt.patient_id);
               
-              console.log('Processing appointment time:', appt.time, 'type:', typeof appt.time);
-              
-              // Crear la fecha y validar que sea válida
+              // Usar exactamente la misma lógica que funciona en el calendario
               const appointmentDate = new Date(appt.time);
-              console.log('Created date object:', appointmentDate, 'isValid:', !isNaN(appointmentDate.getTime()));
+              const timeString = appointmentDate.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+              });
               
-              let formattedTime = 'Hora no válida';
-              if (!isNaN(appointmentDate.getTime())) {
-                formattedTime = appointmentDate.toLocaleTimeString('es-ES', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: false
-                });
-              }
-              
-              console.log('Final formatted time:', formattedTime);
+              console.log('Appointment time debug:', {
+                originalTime: appt.time,
+                dateObject: appointmentDate,
+                formattedTime: timeString,
+                isValidDate: !isNaN(appointmentDate.getTime())
+              });
               
               return {
                 id: appt.id,
                 patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
-                time: formattedTime,
+                time: timeString,
                 specialty: appt.specialty,
                 status: appt.status,
               };
-            }));
+            });
+            
+            console.log('Final formatted appointments:', formattedAppointments);
+            setAppointments(formattedAppointments);
           }
         } catch (error) {
           console.error("Error fetching appointments:", error);
