@@ -158,12 +158,16 @@ const AdminDashboard = () => {
   const handleDeleteDoctor = async (doctorId: string, doctorName: string) => {
     try {
       setLoading(true);
+      console.log('Starting delete for doctor:', doctorId, doctorName);
       
       // Delete from doctors table first
-      const { error: doctorError } = await supabase
+      const { data: deletedDoctors, error: doctorError, count: doctorCount } = await supabase
         .from('doctors')
         .delete()
-        .eq('id', doctorId);
+        .eq('id', doctorId)
+        .select();
+
+      console.log('Doctor delete result:', { deletedDoctors, doctorError, doctorCount });
       
       if (doctorError) {
         console.error('Error deleting from doctors table:', doctorError);
@@ -171,21 +175,31 @@ const AdminDashboard = () => {
       }
 
       // Then delete from profiles table
-      const { error: profileError } = await supabase
+      const { data: deletedProfiles, error: profileError, count: profileCount } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', doctorId);
+        .eq('id', doctorId)
+        .select();
+
+      console.log('Profile delete result:', { deletedProfiles, profileError, profileCount });
       
       if (profileError) {
         console.error('Error deleting from profiles table:', profileError);
         throw profileError;
       }
+
+      if (!deletedProfiles || deletedProfiles.length === 0) {
+        throw new Error('No se eliminó ningún perfil. Verifica los permisos de administrador.');
+      }
       
       toast.success(`Doctor ${doctorName} eliminado exitosamente`);
-      fetchDoctors();
+      
+      // Force refresh immediately
+      await fetchDoctors();
+      
     } catch (error: any) {
       console.error('Error deleting doctor:', error);
-      toast.error(`Error al eliminar el doctor: ${error.message || 'Error desconocido'}`);
+      toast.error(`Error al eliminar el doctor: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -213,9 +227,10 @@ const AdminDashboard = () => {
     
     try {
       setLoading(true);
+      console.log('Starting edit for doctor:', editingDoctor.id, editForm);
       
       // Update profile table directly
-      const { error: profileError } = await supabase
+      const { data: profileData, error: profileError, count } = await supabase
         .from('profiles')
         .update({
           first_name: editForm.first_name,
@@ -225,15 +240,18 @@ const AdminDashboard = () => {
           avatar_url: editForm.avatar_url,
           updated_at: new Date().toISOString()
         })
-        .eq('id', editingDoctor.id);
+        .eq('id', editingDoctor.id)
+        .select();
+
+      console.log('Profile update result:', { profileData, profileError, count });
 
       if (profileError) {
         console.error('Profile update error:', profileError);
-        // Continue to try doctor update even if profile fails
+        throw profileError;
       }
 
       // Update doctor info
-      const { error: doctorError } = await supabase
+      const { data: doctorData, error: doctorError, count: doctorCount } = await supabase
         .from('doctors')
         .update({
           specialty: editForm.specialty,
@@ -244,25 +262,34 @@ const AdminDashboard = () => {
           languages: editForm.languages,
           updated_at: new Date().toISOString()
         })
-        .eq('id', editingDoctor.id);
+        .eq('id', editingDoctor.id)
+        .select();
+
+      console.log('Doctor update result:', { doctorData, doctorError, doctorCount });
 
       if (doctorError) {
         console.error('Doctor update error:', doctorError);
         throw doctorError;
       }
 
+      if (!profileData || profileData.length === 0) {
+        throw new Error('No se actualizó ningún perfil. Verifica los permisos de administrador.');
+      }
+
+      if (!doctorData || doctorData.length === 0) {
+        throw new Error('No se actualizó ningún doctor. Verifica los permisos de administrador.');
+      }
+
       toast.success('Perfil del doctor actualizado exitosamente');
       setEditingDoctor(null);
       setEditForm({});
       
-      // Force refresh with a small delay to ensure data is updated
-      setTimeout(() => {
-        fetchDoctors();
-      }, 1000);
+      // Force refresh immediately
+      await fetchDoctors();
       
     } catch (error: any) {
       console.error('Error updating doctor:', error);
-      toast.error('Error al actualizar el perfil del doctor');
+      toast.error(`Error al actualizar el perfil del doctor: ${error.message}`);
     } finally {
       setLoading(false);
     }
