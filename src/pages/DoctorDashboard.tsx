@@ -80,12 +80,11 @@ const DoctorDashboard = () => {
             
             setAppointments(data.map((appt: any) => {
               const profile = patientProfiles.find((p: any) => p.id === appt.patient_id);
-              const appointmentTime = new Date(appt.time);
               
               return {
                 id: appt.id,
                 patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
-                time: appointmentTime.toLocaleTimeString('es-ES', { 
+                time: new Date(appt.time).toLocaleTimeString('es-ES', { 
                   hour: '2-digit', 
                   minute: '2-digit',
                   hour12: false
