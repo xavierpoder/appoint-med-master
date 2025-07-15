@@ -157,7 +157,9 @@ const AdminDashboard = () => {
 
   const handleDeleteDoctor = async (doctorId: string, doctorName: string) => {
     try {
-      // First delete from doctors table (this will cascade from profiles due to foreign key)
+      setLoading(true);
+      
+      // Delete from doctors table first
       const { error: doctorError } = await supabase
         .from('doctors')
         .delete()
@@ -165,9 +167,10 @@ const AdminDashboard = () => {
       
       if (doctorError) {
         console.error('Error deleting from doctors table:', doctorError);
+        throw doctorError;
       }
 
-      // Then delete from profiles table (this should also delete from auth via trigger)
+      // Then delete from profiles table
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
@@ -182,7 +185,9 @@ const AdminDashboard = () => {
       fetchDoctors();
     } catch (error: any) {
       console.error('Error deleting doctor:', error);
-      toast.error('Error al eliminar el doctor');
+      toast.error(`Error al eliminar el doctor: ${error.message || 'Error desconocido'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
