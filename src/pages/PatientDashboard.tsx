@@ -35,6 +35,12 @@ const PatientDashboard = () => {
     fetchDoctors();
   }, []);
 
+  // Add a refresh interval to get new doctors
+  useEffect(() => {
+    const interval = setInterval(fetchDoctors, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchDoctors = async () => {
     setLoading(true);
     try {
