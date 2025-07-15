@@ -174,12 +174,12 @@ export const useCustomCalendar = () => {
             startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
               hour: '2-digit', 
               minute: '2-digit',
-              timeZone: 'UTC'
+              hour12: false
             }),
             endTime: new Date(new Date(appointment.time).getTime() + 60 * 60 * 1000).toLocaleTimeString('es-ES', { 
               hour: '2-digit', 
               minute: '2-digit',
-              timeZone: 'UTC'
+              hour12: false
             })
           };
         }
@@ -194,12 +194,12 @@ export const useCustomCalendar = () => {
           startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
             hour: '2-digit', 
             minute: '2-digit',
-            timeZone: 'UTC'
+            hour12: false
           }),
           endTime: new Date(new Date(appointment.time).getTime() + 60 * 60 * 1000).toLocaleTimeString('es-ES', { 
             hour: '2-digit', 
             minute: '2-digit',
-            timeZone: 'UTC'
+            hour12: false
           })
         };
       });
