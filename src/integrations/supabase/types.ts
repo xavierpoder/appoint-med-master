@@ -453,7 +453,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       appointment_status: "scheduled" | "confirmed" | "cancelled" | "completed"
