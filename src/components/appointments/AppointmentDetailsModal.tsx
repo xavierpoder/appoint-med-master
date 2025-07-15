@@ -17,14 +17,16 @@ interface AppointmentDetailsModalProps {
     id: string;
     patientName: string;
     time: string;
+    originalTime?: string;
     specialty: string;
     status: 'confirmed' | 'pending' | 'cancelled';
     patientDetails?: {
       id: string;
-      phone?: string;
-      email?: string;
-      reason?: string;
-    };
+      phone: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    } | null;
   } | null;
 }
 
@@ -86,14 +88,17 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({
                     <h3 className="font-semibold text-lg">{appointment.patientName}</h3>
                     <p className="text-sm text-muted-foreground">
                       <Clock className="w-4 h-4 inline mr-1" />
-                      {new Date(appointment.time).toLocaleString('es-ES', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {appointment.originalTime ? 
+                        new Date(appointment.originalTime).toLocaleString('es-ES', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : 
+                        `Hoy de ${appointment.time}`
+                      }
                     </p>
                   </div>
                   {getStatusBadge(appointment.status)}
@@ -139,20 +144,6 @@ const AppointmentDetailsModal: React.FC<AppointmentDetailsModalProps> = ({
             </Card>
           )}
 
-          {/* Motivo de consulta */}
-          {appointment.patientDetails?.reason && (
-            <Card>
-              <CardContent className="p-4">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Motivo de Consulta
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  {appointment.patientDetails.reason}
-                </p>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </DialogContent>
     </Dialog>

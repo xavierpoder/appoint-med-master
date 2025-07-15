@@ -17,8 +17,16 @@ interface Appointment {
   id: string;
   patientName: string;
   time: string;
+  originalTime?: string;
   specialty: string;
   status: 'confirmed' | 'pending' | 'cancelled';
+  patientDetails?: {
+    id: string;
+    phone: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  } | null;
 }
 
 const DoctorDashboard = () => {
@@ -90,6 +98,12 @@ const DoctorDashboard = () => {
                     hour12: false
                   });
               
+              // Calcular hora de fin (asumiendo 1 hora de duración)
+              const startTime = timeString;
+              const [hours, minutes] = startTime.split(':').map(Number);
+              const endHours = (hours + 1) % 24;
+              const endTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+              
               console.log('Appointment time fixed:', {
                 originalTime: appt.time,
                 extractedTime: timeString
@@ -98,9 +112,17 @@ const DoctorDashboard = () => {
               return {
                 id: appt.id,
                 patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
-                time: timeString,
+                time: `${startTime} - ${endTime}`, // Mostrar rango de tiempo
+                originalTime: appt.time, // Mantener fecha original para el modal
                 specialty: appt.specialty,
                 status: appt.status,
+                patientDetails: profile ? {
+                  id: profile.id,
+                  phone: profile.phone || 'No disponible',
+                  email: profile.email || 'No disponible',
+                  firstName: profile.first_name,
+                  lastName: profile.last_name
+                } : null
               };
             });
             
