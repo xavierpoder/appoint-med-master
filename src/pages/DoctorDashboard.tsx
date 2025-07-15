@@ -81,14 +81,27 @@ const DoctorDashboard = () => {
             setAppointments(data.map((appt: any) => {
               const profile = patientProfiles.find((p: any) => p.id === appt.patient_id);
               
-              return {
-                id: appt.id,
-                patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
-                time: new Date(appt.time).toLocaleTimeString('es-ES', { 
+              console.log('Processing appointment time:', appt.time, 'type:', typeof appt.time);
+              
+              // Crear la fecha y validar que sea válida
+              const appointmentDate = new Date(appt.time);
+              console.log('Created date object:', appointmentDate, 'isValid:', !isNaN(appointmentDate.getTime()));
+              
+              let formattedTime = 'Hora no válida';
+              if (!isNaN(appointmentDate.getTime())) {
+                formattedTime = appointmentDate.toLocaleTimeString('es-ES', { 
                   hour: '2-digit', 
                   minute: '2-digit',
                   hour12: false
-                }),
+                });
+              }
+              
+              console.log('Final formatted time:', formattedTime);
+              
+              return {
+                id: appt.id,
+                patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
+                time: formattedTime,
                 specialty: appt.specialty,
                 status: appt.status,
               };
