@@ -50,8 +50,7 @@ const DoctorDashboard = () => {
             `)
             .eq('doctor_id', user.id)
             .gte('time', startOfDay)
-            .lte('time', endOfDay)
-            .eq('status', 'scheduled');
+            .lte('time', endOfDay);
 
           if (error) {
             console.error("Error fetching appointments:", error);
@@ -61,20 +60,23 @@ const DoctorDashboard = () => {
             
             // Get patient IDs to fetch their profiles
             const patientIds = data.map(appt => appt.patient_id).filter(id => id);
+            console.log("Patient IDs to fetch:", patientIds);
             let patientProfiles = [];
             
             if (patientIds.length > 0) {
               const { data: profilesData, error: profilesError } = await supabase
-                .from('profiles')
-                .select('id, first_name, last_name, phone, email')
-                .in('id', patientIds);
+                .from("profiles")
+                .select("id, first_name, last_name, phone, email")
+                .in("id", patientIds);
                 
               if (profilesError) {
-                console.error('Error fetching patient profiles:', profilesError);
+                console.error("Error fetching patient profiles:", profilesError);
               } else {
+                console.log("Profiles query result:", { profilesData, profilesError });
                 patientProfiles = profilesData || [];
               }
             }
+            console.log("Final profiles data:", patientProfiles);
             
             setAppointments(data.map((appt: any) => {
               const profile = patientProfiles.find((p: any) => p.id === appt.patient_id);
