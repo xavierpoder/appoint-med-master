@@ -157,10 +157,26 @@ const AdminDashboard = () => {
 
   const handleDeleteDoctor = async (doctorId: string, doctorName: string) => {
     try {
-      // Delete from auth.users which will cascade to profiles and doctors tables
-      const { error } = await supabase.auth.admin.deleteUser(doctorId);
+      // First delete from doctors table (this will cascade from profiles due to foreign key)
+      const { error: doctorError } = await supabase
+        .from('doctors')
+        .delete()
+        .eq('id', doctorId);
       
-      if (error) throw error;
+      if (doctorError) {
+        console.error('Error deleting from doctors table:', doctorError);
+      }
+
+      // Then delete from profiles table (this should also delete from auth via trigger)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', doctorId);
+      
+      if (profileError) {
+        console.error('Error deleting from profiles table:', profileError);
+        throw profileError;
+      }
       
       toast.success(`Doctor ${doctorName} eliminado exitosamente`);
       fetchDoctors();
