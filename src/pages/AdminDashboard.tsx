@@ -160,28 +160,70 @@ const AdminDashboard = () => {
       setLoading(true);
       console.log('Starting delete for doctor:', doctorId, doctorName);
       
-      // Delete from doctors table first
-      const { data: deletedDoctors, error: doctorError, count: doctorCount } = await supabase
+      // First delete all availability slots for this doctor
+      const { data: deletedSlots, error: slotsError } = await supabase
+        .from('availability_slots')
+        .delete()
+        .eq('doctor_id', doctorId)
+        .select();
+
+      console.log('Availability slots delete result:', { deletedSlots, slotsError });
+      
+      if (slotsError) {
+        console.error('Error deleting availability slots:', slotsError);
+        throw slotsError;
+      }
+
+      // Then delete all doctor availability records
+      const { data: deletedAvailability, error: availabilityError } = await supabase
+        .from('doctor_availability')
+        .delete()
+        .eq('doctor_id', doctorId)
+        .select();
+
+      console.log('Doctor availability delete result:', { deletedAvailability, availabilityError });
+      
+      if (availabilityError) {
+        console.error('Error deleting doctor availability:', availabilityError);
+        throw availabilityError;
+      }
+
+      // Delete any appointments for this doctor
+      const { data: deletedAppointments, error: appointmentsError } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('doctor_id', doctorId)
+        .select();
+
+      console.log('Appointments delete result:', { deletedAppointments, appointmentsError });
+      
+      if (appointmentsError) {
+        console.error('Error deleting appointments:', appointmentsError);
+        throw appointmentsError;
+      }
+
+      // Now delete from doctors table
+      const { data: deletedDoctors, error: doctorError } = await supabase
         .from('doctors')
         .delete()
         .eq('id', doctorId)
         .select();
 
-      console.log('Doctor delete result:', { deletedDoctors, doctorError, doctorCount });
+      console.log('Doctor delete result:', { deletedDoctors, doctorError });
       
       if (doctorError) {
         console.error('Error deleting from doctors table:', doctorError);
         throw doctorError;
       }
 
-      // Then delete from profiles table
-      const { data: deletedProfiles, error: profileError, count: profileCount } = await supabase
+      // Finally delete from profiles table
+      const { data: deletedProfiles, error: profileError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', doctorId)
         .select();
 
-      console.log('Profile delete result:', { deletedProfiles, profileError, profileCount });
+      console.log('Profile delete result:', { deletedProfiles, profileError });
       
       if (profileError) {
         console.error('Error deleting from profiles table:', profileError);
@@ -192,7 +234,7 @@ const AdminDashboard = () => {
         throw new Error('No se eliminó ningún perfil. Verifica los permisos de administrador.');
       }
       
-      toast.success(`Doctor ${doctorName} eliminado exitosamente`);
+      toast.success(`Doctor ${doctorName} eliminado exitosamente (incluyendo ${deletedSlots?.length || 0} slots de disponibilidad y ${deletedAppointments?.length || 0} citas)`);
       
       // Force refresh immediately
       await fetchDoctors();
