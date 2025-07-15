@@ -142,7 +142,7 @@ export const useCustomCalendar = () => {
       if (patientIds.length > 0) {
         console.log('Fetching profiles for patient IDs:', patientIds);
         const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
+          .from('patient_view')
           .select('id, first_name, last_name, phone, email')
           .in('id', patientIds);
 

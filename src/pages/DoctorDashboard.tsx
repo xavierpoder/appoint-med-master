@@ -65,7 +65,7 @@ const DoctorDashboard = () => {
             
             if (patientIds.length > 0) {
               const { data: profilesData, error: profilesError } = await supabase
-                .from("profiles")
+                .from("patient_view")
                 .select("id, first_name, last_name, phone, email")
                 .in("id", patientIds);
                 
@@ -85,7 +85,7 @@ const DoctorDashboard = () => {
               return {
                 id: appt.id,
                 patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
-                time: appointmentTime.toLocaleTimeString('es-ES', { 
+                time: new Date(appt.time).toLocaleTimeString('es-ES', { 
                   hour: '2-digit', 
                   minute: '2-digit',
                   hour12: false
