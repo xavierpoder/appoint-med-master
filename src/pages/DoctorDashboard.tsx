@@ -81,19 +81,18 @@ const DoctorDashboard = () => {
             const formattedAppointments = data.map((appt: any) => {
               const profile = patientProfiles.find((p: any) => p.id === appt.patient_id);
               
-              // Usar exactamente la misma lógica que funciona en el calendario
-              const appointmentDate = new Date(appt.time);
-              const timeString = appointmentDate.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: false
-              });
+              // Extraer la hora directamente del string sin conversión de timezone
+              const timeString = appt.time.includes('T') 
+                ? appt.time.split('T')[1].substring(0, 5) // Extrae "10:15" de "2025-07-15T10:15:00+00:00"
+                : new Date(appt.time).toLocaleTimeString('es-ES', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                  });
               
-              console.log('Appointment time debug:', {
+              console.log('Appointment time fixed:', {
                 originalTime: appt.time,
-                dateObject: appointmentDate,
-                formattedTime: timeString,
-                isValidDate: !isNaN(appointmentDate.getTime())
+                extractedTime: timeString
               });
               
               return {
