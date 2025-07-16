@@ -38,10 +38,19 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
-    if (user) {
+    // Log para debugging
+    console.log('Auth component loaded with params:', {
+      type: searchParams.get('type'),
+      isPasswordRecovery,
+      user: user?.id
+    });
+
+    // Solo redirigir si el usuario está autenticado Y no estamos en proceso de recuperación
+    if (user && !isPasswordRecovery) {
+      console.log('Redirecting authenticated user to dashboard');
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, navigate, isPasswordRecovery, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,17 +149,24 @@ const Auth = () => {
 
     setLoading(true);
     try {
+      console.log('Attempting to update password...');
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
 
       if (error) {
+        console.error('Password update error:', error);
         toast.error(error.message || 'Error al actualizar la contraseña');
       } else {
+        console.log('Password updated successfully');
         toast.success('¡Contraseña actualizada exitosamente!');
-        navigate('/');
+        // Pequeña pausa antes de redirigir para que el usuario vea el mensaje
+        setTimeout(() => {
+          navigate('/');
+        }, 1000);
       }
     } catch (error) {
+      console.error('Unexpected error:', error);
       toast.error('Error inesperado al actualizar la contraseña');
     } finally {
       setLoading(false);
@@ -170,20 +186,25 @@ const Auth = () => {
 
         <Card>
           {isPasswordRecovery ? (
-            // Password Recovery Form
+            // Password Recovery Form - Funciona para doctores y pacientes
             <>
               <CardHeader>
                 <CardTitle>Establecer Nueva Contraseña</CardTitle>
                 <CardDescription>
-                  Ingresa tu nueva contraseña para completar la recuperación
+                  Ingresa tu nueva contraseña para completar la recuperación. Esta funcionalidad está disponible tanto para doctores como para pacientes.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Información:</strong> Estás estableciendo una nueva contraseña para tu cuenta. Esta contraseña se aplicará tanto si eres doctor como paciente.
+                  </p>
+                </div>
                 <form onSubmit={handlePasswordReset} className="space-y-4">
                   <div>
                     <Input
                       type="password"
-                      placeholder="Nueva contraseña"
+                      placeholder="Nueva contraseña (mínimo 6 caracteres)"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
@@ -200,9 +221,22 @@ const Auth = () => {
                       minLength={6}
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-sm text-red-600">Las contraseñas no coinciden</p>
+                  )}
+                  <Button type="submit" className="w-full" disabled={loading || (newPassword !== confirmPassword)}>
                     {loading ? 'Actualizando contraseña...' : 'Actualizar Contraseña'}
                   </Button>
+                  <div className="text-center">
+                    <Button 
+                      type="button" 
+                      variant="link" 
+                      onClick={() => navigate('/auth')}
+                      className="text-sm"
+                    >
+                      Volver al inicio de sesión
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </>
