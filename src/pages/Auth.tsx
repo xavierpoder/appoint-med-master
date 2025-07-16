@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,11 @@ import { supabase } from '@/integrations/supabase/client';
 const Auth = () => {
   const { signUp, signIn, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+
+  // Check if this is a password recovery flow
+  const isPasswordRecovery = searchParams.get('type') === 'recovery';
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -28,6 +32,10 @@ const Auth = () => {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'patient'>('patient');
   const [specialty, setSpecialty] = useState('');
+
+  // Password recovery form state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -117,6 +125,38 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast.error('Las contraseñas no coinciden');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        toast.error(error.message || 'Error al actualizar la contraseña');
+      } else {
+        toast.success('¡Contraseña actualizada exitosamente!');
+        navigate('/');
+      }
+    } catch (error) {
+      toast.error('Error inesperado al actualizar la contraseña');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="w-full max-w-md">
@@ -129,6 +169,45 @@ const Auth = () => {
         </div>
 
         <Card>
+          {isPasswordRecovery ? (
+            // Password Recovery Form
+            <>
+              <CardHeader>
+                <CardTitle>Establecer Nueva Contraseña</CardTitle>
+                <CardDescription>
+                  Ingresa tu nueva contraseña para completar la recuperación
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form onSubmit={handlePasswordReset} className="space-y-4">
+                  <div>
+                    <Input
+                      type="password"
+                      placeholder="Nueva contraseña"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      type="password"
+                      placeholder="Confirmar nueva contraseña"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Actualizando contraseña...' : 'Actualizar Contraseña'}
+                  </Button>
+                </form>
+              </CardContent>
+            </>
+          ) : (
+            // Normal Login/Signup Tabs
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
@@ -282,6 +361,7 @@ const Auth = () => {
               </CardContent>
             </TabsContent>
           </Tabs>
+          )}
         </Card>
       </div>
     </div>
