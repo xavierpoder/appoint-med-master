@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Stethoscope } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const { signUp, signIn, signInWithGoogle, user } = useAuth();
@@ -48,6 +49,29 @@ const Auth = () => {
       }
     } catch (error) {
       toast.error('Error inesperado al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!loginEmail) {
+      toast.error('Por favor, ingresa tu correo electrónico para recuperar la contraseña.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(loginEmail, {
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
+      });
+      if (error) {
+        toast.error(error.message || 'Error al enviar el correo de recuperación.');
+      } else {
+        toast.success('Se ha enviado un correo electrónico con instrucciones para restablecer tu contraseña.');
+      }
+    } catch (error) {
+      toast.error('Error inesperado al recuperar la contraseña.');
     } finally {
       setLoading(false);
     }
@@ -165,6 +189,11 @@ const Auth = () => {
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                   </Button>
+                  <div className="text-center mt-4">
+                    <a href="#" onClick={handleForgotPassword} className="text-sm text-blue-600 hover:underline">
+                      ¿Olvidaste tu contraseña?
+                    </a>
+                  </div>
                 </form>
               </CardContent>
             </TabsContent>
