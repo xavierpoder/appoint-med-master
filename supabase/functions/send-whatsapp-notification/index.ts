@@ -23,7 +23,11 @@ serve(async (req) => {
       throw new Error('Missing Twilio credentials');
     }
 
-    console.log('Sending WhatsApp notification:', { type, appointmentId, message });
+    console.log('Twilio credentials check:', {
+      accountSid: twilioAccountSid ? 'Present' : 'Missing',
+      authToken: twilioAuthToken ? 'Present' : 'Missing',
+      whatsappFrom: twilioWhatsappFrom ? 'Present' : 'Missing'
+    });
 
     // Create Supabase client
     const supabase = createClient(
