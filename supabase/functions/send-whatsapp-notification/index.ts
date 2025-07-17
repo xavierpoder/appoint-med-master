@@ -23,10 +23,8 @@ serve(async (req) => {
       throw new Error('Missing Twilio credentials');
     }
 
-    // Ensure WhatsApp number format is correct
-    const whatsappFromFormatted = twilioWhatsappFrom.startsWith('whatsapp:') 
-      ? twilioWhatsappFrom 
-      : `whatsapp:${twilioWhatsappFrom}`;
+    // Use official Twilio Sandbox WhatsApp number
+    const whatsappFromFormatted = 'whatsapp:+14155238886';
 
     console.log('Twilio credentials check:', {
       accountSid: twilioAccountSid ? 'Present' : 'Missing',
