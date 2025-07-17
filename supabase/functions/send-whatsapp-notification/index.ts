@@ -23,10 +23,15 @@ serve(async (req) => {
       throw new Error('Missing Twilio credentials');
     }
 
+    // Ensure WhatsApp number format is correct
+    const whatsappFromFormatted = twilioWhatsappFrom.startsWith('whatsapp:') 
+      ? twilioWhatsappFrom 
+      : `whatsapp:${twilioWhatsappFrom}`;
+
     console.log('Twilio credentials check:', {
       accountSid: twilioAccountSid ? 'Present' : 'Missing',
       authToken: twilioAuthToken ? 'Present' : 'Missing',
-      whatsappFrom: twilioWhatsappFrom ? 'Present' : 'Missing'
+      whatsappFrom: whatsappFromFormatted
     });
 
     // Create Supabase client
@@ -125,7 +130,7 @@ serve(async (req) => {
                 'Content-Type': 'application/x-www-form-urlencoded',
               },
               body: new URLSearchParams({
-                From: twilioWhatsappFrom,
+                From: whatsappFromFormatted,
                 To: msg.to,
                 Body: msg.message,
               }),
@@ -252,7 +257,7 @@ serve(async (req) => {
               'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-              From: twilioWhatsappFrom,
+              From: whatsappFromFormatted,
               To: msg.to,
               Body: msg.message,
             }),
