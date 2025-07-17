@@ -4,10 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Calendar, Search, User, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calendar, Search, User, Clock, Phone, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import CustomCalendar from "@/components/calendar/CustomCalendar";
+import UserSettings from "@/components/UserSettings";
 
 interface Doctor {
   id: string;
@@ -30,10 +32,33 @@ const PatientDashboard = () => {
   const [selectedSlot, setSelectedSlot] = useState<any>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showWhatsAppNotice, setShowWhatsAppNotice] = useState(false);
+  const [userPhone, setUserPhone] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDoctors();
+    checkUserPhone();
   }, []);
+
+  const checkUserPhone = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', user.user.id)
+        .single();
+
+      if (error) throw error;
+      
+      setUserPhone(data?.phone || null);
+      setShowWhatsAppNotice(!data?.phone);
+    } catch (error) {
+      console.error('Error checking user phone:', error);
+    }
+  };
 
   // Add a refresh interval to get new doctors
   useEffect(() => {
@@ -89,7 +114,7 @@ const PatientDashboard = () => {
       }
 
       // Create the appointment
-      const { error: appointmentError } = await supabase
+      const { data: appointment, error: appointmentError } = await supabase
         .from('appointments')
         .insert({
           doctor_id: selectedDoctor.id,
@@ -99,14 +124,44 @@ const PatientDashboard = () => {
           status: 'scheduled',
           duration_minutes: 60, // 60 minutes minimum
           notes: `Cita agendada con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}`
-        });
+        })
+        .select('id')
+        .single();
 
       if (appointmentError) throw appointmentError;
+
+      // Get patient and doctor phone numbers for WhatsApp notifications
+      const [patientData, doctorData] = await Promise.all([
+        supabase.from('profiles').select('phone, first_name, last_name').eq('id', user.user.id).single(),
+        supabase.from('profiles').select('phone').eq('id', selectedDoctor.id).single()
+      ]);
+
+      // Send WhatsApp confirmation notifications
+      try {
+        const { data: notificationResult } = await supabase.functions.invoke('send-whatsapp-notification', {
+          body: {
+            type: 'confirmation',
+            appointmentId: appointment.id,
+            patientPhone: patientData.data?.phone,
+            doctorPhone: doctorData.data?.phone
+          }
+        });
+
+        console.log('WhatsApp notifications sent:', notificationResult);
+        
+        if (notificationResult?.success) {
+          toast.success(`Cita agendada exitosamente con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}. Notificaciones enviadas por WhatsApp.`);
+        } else {
+          toast.success(`Cita agendada exitosamente con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}. (Error al enviar notificaciones)`);
+        }
+      } catch (notificationError) {
+        console.error('Error sending WhatsApp notifications:', notificationError);
+        toast.success(`Cita agendada exitosamente con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}. (Error al enviar notificaciones)`);
+      }
 
       // We don't need to mark the slot as unavailable since we're using 1-hour bookings
       // The slot will be filtered out by checking existing appointments
 
-      toast.success(`Cita agendada exitosamente con Dr. ${selectedDoctor.first_name} ${selectedDoctor.last_name}`);
       setSelectedDoctor(null);
       setSelectedSlot(null);
       
@@ -135,19 +190,76 @@ const PatientDashboard = () => {
                 <p className="text-sm text-gray-500">Busca y agenda tu cita médica</p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/')}
-              className="text-gray-600"
-            >
-              Volver al inicio
-            </Button>
+            <div className="flex items-center gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configuración
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Configuración del Perfil</DialogTitle>
+                  </DialogHeader>
+                  <UserSettings />
+                </DialogContent>
+              </Dialog>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/')}
+                className="text-gray-600"
+              >
+                Volver al inicio
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
+          {/* WhatsApp Notice */}
+          {showWhatsAppNotice && (
+            <Card className="border-green-200 bg-green-50 mb-6">
+              <div className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-medium text-green-900">¡Configura tu WhatsApp!</h3>
+                      <p className="text-sm text-green-800 mt-1">
+                        Añade tu número de teléfono para recibir confirmaciones de citas y recordatorios automáticos por WhatsApp.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="border-green-600 text-green-700 hover:bg-green-100">
+                          Configurar
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-3xl">
+                        <DialogHeader>
+                          <DialogTitle>Configuración del Perfil</DialogTitle>
+                        </DialogHeader>
+                        <UserSettings />
+                      </DialogContent>
+                    </Dialog>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => setShowWhatsAppNotice(false)}
+                      className="text-green-600 hover:bg-green-100"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
           {/* Search Section */}
           <Card className="p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Buscar Doctor</h2>
