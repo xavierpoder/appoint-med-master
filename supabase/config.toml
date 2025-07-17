@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.test-whatsapp]
 verify_jwt = false
+
+[functions.webhook-handler]
+verify_jwt = false

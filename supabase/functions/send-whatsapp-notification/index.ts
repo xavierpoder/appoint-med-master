@@ -55,34 +55,59 @@ serve(async (req) => {
       minute: '2-digit'
     });
 
+    // Validate that users have joined the sandbox
+    const validateSandboxUser = async (phone: string): Promise<boolean> => {
+      const { data } = await supabase
+        .from('whatsapp_users')
+        .select('*')
+        .eq('phone', phone)
+        .eq('is_active', true);
+      return data && data.length > 0;
+    };
+
     // Send WhatsApp messages
     const messages = [];
 
     if (type === 'confirmation') {
       // Send to patient
       if (patientPhone) {
-        const patientMessage = `Hola ${appointment.patient_name}, has reservado una cita con ${appointment.doctor_name} el ${formattedDate} a las ${formattedTime}. Gracias por elegir Clínica Master.`;
-        messages.push({
-          to: `whatsapp:${patientPhone}`,
-          message: patientMessage
-        });
+        const isRegistered = await validateSandboxUser(patientPhone);
+        if (isRegistered) {
+          const patientMessage = `Hola ${appointment.patient_name}, has reservado una cita con ${appointment.doctor_name} el ${formattedDate} a las ${formattedTime}. Responde CONFIRMAR para aceptar o CANCELAR para reprogramar.`;
+          messages.push({
+            to: `whatsapp:${patientPhone}`,
+            message: patientMessage
+          });
+        } else {
+          console.log(`Patient ${patientPhone} not registered in sandbox`);
+        }
       }
 
       // Send to doctor
       if (doctorPhone) {
-        const doctorMessage = `Nueva cita: ${appointment.patient_name} el ${formattedDate} a las ${formattedTime}.`;
-        messages.push({
-          to: `whatsapp:${doctorPhone}`,
-          message: doctorMessage
-        });
+        const isRegistered = await validateSandboxUser(doctorPhone);
+        if (isRegistered) {
+          const doctorMessage = `Nueva cita: ${appointment.patient_name} el ${formattedDate} a las ${formattedTime}. Responde OK para confirmar.`;
+          messages.push({
+            to: `whatsapp:${doctorPhone}`,
+            message: doctorMessage
+          });
+        } else {
+          console.log(`Doctor ${doctorPhone} not registered in sandbox`);
+        }
       }
     } else if (type === 'reminder') {
       // Send reminder to patient only
       if (patientPhone) {
-        messages.push({
-          to: `whatsapp:${patientPhone}`,
-          message: message
-        });
+        const isRegistered = await validateSandboxUser(patientPhone);
+        if (isRegistered) {
+          messages.push({
+            to: `whatsapp:${patientPhone}`,
+            message: message
+          });
+        } else {
+          console.log(`Patient ${patientPhone} not registered in sandbox for reminder`);
+        }
       }
     }
 

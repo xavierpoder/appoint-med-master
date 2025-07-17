@@ -338,6 +338,30 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_users: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          joined_at: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          phone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       appointments_view: {
