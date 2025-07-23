@@ -97,9 +97,37 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
       const startOfDay = `${dateStr}T00:00:00.000Z`;
       const endOfDay = `${dateStr}T23:59:59.999Z`;
 
+      console.log('=== MODAL DEBUG ===');
       console.log('Loading slots for date:', dateStr, 'doctor:', user.id);
+      console.log('Date range:', startOfDay, 'to', endOfDay);
 
-      // Obtener slots disponibles del doctor (misma lógica que useCustomCalendar)
+      // Obtener citas ya agendadas PRIMERO para debug
+      const { data: appointments, error: appointmentsError } = await supabase
+        .from("appointments")
+        .select("time, id, patient_id")
+        .eq("doctor_id", user.id)
+        .gte("time", startOfDay)
+        .lte("time", endOfDay)
+        .eq("status", "scheduled");
+
+      if (appointmentsError) {
+        console.error("Error fetching appointments:", appointmentsError);
+        return;
+      }
+
+      console.log('=== EXISTING APPOINTMENTS ===');
+      console.log('Raw appointments data:', appointments);
+      
+      // Crear lista de horarios ocupados con formato exacto
+      const occupiedTimes = appointments?.map(appt => {
+        console.log('Appointment time:', appt.time, 'Type:', typeof appt.time);
+        return appt.time;
+      }) || [];
+      
+      console.log('=== OCCUPIED TIMES LIST ===');
+      console.log('Occupied times array:', occupiedTimes);
+
+      // Obtener slots disponibles del doctor
       const { data, error } = await supabase
         .from('availability_slots')
         .select('*')
@@ -114,49 +142,36 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         throw error;
       }
 
+      console.log('=== AVAILABILITY SLOTS ===');
       console.log('Available slots from DB:', data);
 
-      // Obtener citas ya agendadas para filtrar horarios ocupados
-      const { data: appointments, error: appointmentsError } = await supabase
-        .from("appointments")
-        .select("time, id")
-        .eq("doctor_id", user.id)
-        .gte("time", startOfDay)
-        .lte("time", endOfDay)
-        .eq("status", "scheduled"); // Solo citas programadas
-
-      if (appointmentsError) {
-        console.error("Error fetching appointments:", appointmentsError);
-        return;
-      }
-
-      console.log('Existing appointments:', appointments);
-
-      // Crear lista de horarios ocupados
-      const occupiedTimes = appointments?.map(appt => appt.time) || [];
-      console.log('Occupied times:', occupiedTimes);
-
-      // Dividir cada availability slot en slots de 1 hora (igual que useCustomCalendar)
+      // Dividir cada availability slot en slots de 1 hora
       const oneHourSlots = [];
       data.forEach((slot: any) => {
         const startTime = new Date(slot.start_time);
         const endTime = new Date(slot.end_time);
         
+        console.log('Processing slot:', slot.start_time, 'to', slot.end_time);
+        
         let currentTime = new Date(startTime);
         while (currentTime < endTime) {
-          const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+          const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
           
-          // Don't create slots that extend beyond the original availability
           if (slotEndTime <= endTime) {
             const slotStartISO = currentTime.toISOString();
             
-            // CRÍTICO: Solo agregar si NO está ocupado
+            // COMPARACIÓN EXACTA
             const isOccupied = occupiedTimes.includes(slotStartISO);
-            console.log('Checking slot', currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }), 'ISO:', slotStartISO, 'occupied:', isOccupied);
+            
+            console.log('=== SLOT CHECK ===');
+            console.log('Slot time ISO:', slotStartISO);
+            console.log('Display time:', currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }));
+            console.log('Is occupied?', isOccupied);
+            console.log('Matching against:', occupiedTimes);
             
             if (!isOccupied) {
               oneHourSlots.push({
-                id: `${slot.id}-${currentTime.getTime()}`, // Unique ID for each hour slot
+                id: `${slot.id}-${currentTime.getTime()}`,
                 originalSlotId: slot.id,
                 title: 'Disponible',
                 start: new Date(currentTime),
@@ -164,17 +179,20 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
                 startTime: currentTime.toLocaleTimeString('es-ES', { 
                   hour: '2-digit', 
                   minute: '2-digit',
-                  timeZone: 'UTC' // Usar UTC igual que en useCustomCalendar
+                  timeZone: 'UTC'
                 }),
                 endTime: slotEndTime.toLocaleTimeString('es-ES', { 
                   hour: '2-digit', 
                   minute: '2-digit',
-                  timeZone: 'UTC' // Usar UTC igual que en useCustomCalendar
+                  timeZone: 'UTC'
                 }),
                 doctor_id: slot.doctor_id,
                 is_available: slot.is_available,
-                start_time_iso: slotStartISO // Para usar en la creación de la cita
+                start_time_iso: slotStartISO
               });
+              console.log('✅ SLOT ADDED as available');
+            } else {
+              console.log('❌ SLOT FILTERED OUT (occupied)');
             }
           }
           
@@ -182,7 +200,10 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         }
       });
 
-      console.log('Final available slots (excluding occupied):', oneHourSlots);
+      console.log('=== FINAL RESULT ===');
+      console.log('Total available slots after filtering:', oneHourSlots.length);
+      console.log('Available slots:', oneHourSlots.map(s => s.startTime));
+      
       setAvailableSlots(oneHourSlots);
     } catch (error) {
       console.error('Error loading available slots:', error);
