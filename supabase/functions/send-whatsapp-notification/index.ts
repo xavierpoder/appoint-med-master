@@ -222,18 +222,16 @@ serve(async (req) => {
         const isRegistered = await validateSandboxUser(patientPhone);
         if (isRegistered) {
           // Create detailed confirmation message with doctor information
-          const patientMessage = `*Confirmación de Cita Médica*
+          const patientMessage = `Hola ${appointment.patient_name} saludamos desde Clínica Master esto es un mensaje *Confirmación de Cita Médica*
 
 🏥 *Información del doctor:*
 - *Doctor:* ${appointment.doctor_name || (doctorDetails ? `Dr. ${doctorDetails.first_name} ${doctorDetails.last_name}` : 'Doctor no especificado')}
-- *Especialidad:* ${appointment.specialty || appointment.doctor_specialty || 'No especificada'}${doctorDetails?.years_experience ? `
-- *Experiencia:* ${doctorDetails.years_experience} años` : ''}${doctorDetails?.consultation_fee ? `
+- *Especialidad:* ${appointment.specialty || appointment.doctor_specialty || 'No especificada'}${doctorDetails?.consultation_fee ? `
 - *Tarifa:* $${doctorDetails.consultation_fee} USD` : ''}${doctorDetails?.education ? `
 - *Educación:* ${doctorDetails.education}` : ''}
 
 📅 *Horario seleccionado:*
 ${formattedStartTime} - ${formattedEndTime} (${appointment.duration_minutes || 60} minutos)
-${formattedDate}
 
 Gracias por usar nuestro servicio. ¡Nos vemos en la consulta!`;
 
