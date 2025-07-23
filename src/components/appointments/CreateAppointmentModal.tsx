@@ -33,6 +33,8 @@ interface AvailableSlot {
   id: string;
   start_time: string;
   end_time: string;
+  startTime: string;
+  endTime: string;
 }
 
 const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
@@ -85,15 +87,14 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
     }
   };
 
-  // Cargar horarios disponibles para la fecha seleccionada
+  // Cargar horarios disponibles para la fecha seleccionada (usando la misma lógica del calendario)
   const loadAvailableSlots = async (date: Date) => {
     if (!user) return;
 
     try {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const startOfDay = `${dateStr}T00:00:00.000Z`;
+      const endOfDay = `${dateStr}T23:59:59.999Z`;
 
       // Obtener slots disponibles del doctor
       const { data: slots, error: slotsError } = await supabase
@@ -101,8 +102,8 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         .select("id, start_time, end_time")
         .eq("doctor_id", user.id)
         .eq("is_available", true)
-        .gte("start_time", startOfDay.toISOString())
-        .lte("start_time", endOfDay.toISOString())
+        .gte("start_time", startOfDay)
+        .lte("start_time", endOfDay)
         .order("start_time");
 
       if (slotsError) {
@@ -115,21 +116,55 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         .from("appointments")
         .select("time")
         .eq("doctor_id", user.id)
-        .gte("time", startOfDay.toISOString())
-        .lte("time", endOfDay.toISOString());
+        .gte("time", startOfDay)
+        .lte("time", endOfDay);
 
       if (appointmentsError) {
         console.error("Error fetching appointments:", appointmentsError);
         return;
       }
 
-      // Filtrar slots que no estén ocupados
+      // Dividir cada slot en segmentos de 1 hora (igual que en el calendario)
+      const oneHourSlots = [];
       const occupiedTimes = appointments?.map(appt => appt.time) || [];
-      const availableSlots = slots?.filter(slot => 
-        !occupiedTimes.includes(slot.start_time)
-      ) || [];
+      
+      slots?.forEach((slot: any) => {
+        const startTime = new Date(slot.start_time);
+        const endTime = new Date(slot.end_time);
+        
+        let currentTime = new Date(startTime);
+        while (currentTime < endTime) {
+          const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+          
+          // Don't create slots that extend beyond the original availability
+          if (slotEndTime <= endTime) {
+            const slotStartISO = currentTime.toISOString();
+            
+            // Solo agregar si no está ocupado
+            if (!occupiedTimes.includes(slotStartISO)) {
+              oneHourSlots.push({
+                id: `${slot.id}-${currentTime.getTime()}`,
+                start_time: slotStartISO,
+                end_time: slotEndTime.toISOString(),
+                startTime: currentTime.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  timeZone: 'America/Guayaquil' // Zona horaria Ecuador
+                }),
+                endTime: slotEndTime.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  timeZone: 'America/Guayaquil' // Zona horaria Ecuador
+                })
+              });
+            }
+          }
+          
+          currentTime = new Date(slotEndTime);
+        }
+      });
 
-      setAvailableSlots(availableSlots);
+      setAvailableSlots(oneHourSlots);
     } catch (error) {
       console.error("Error loading available slots:", error);
     }
@@ -275,17 +310,13 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         return;
       }
 
-      // Crear la cita
-      const appointmentTime = new Date(selectedDate!);
-      const [hours, minutes] = selectedTime.split(":");
-      appointmentTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
+      // Crear la cita usando directamente el selectedTime que ya está en formato ISO
       const { data: appointment, error: appointmentError } = await supabase
         .from("appointments")
         .insert({
           doctor_id: user.id,
           patient_id: patientId,
-          time: appointmentTime.toISOString(),
+          time: selectedTime, // selectedTime ya es el ISO string correcto
           duration_minutes: 60,
           status: "scheduled",
           specialty: "Consulta General",
@@ -301,7 +332,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         return;
       }
 
-      // Enviar notificación WhatsApp
+      // Enviar notificación WhatsApp inmediatamente
       try {
         await supabase.functions.invoke("send-whatsapp-notification", {
           body: {
@@ -309,12 +340,12 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
             type: "appointment_confirmation"
           }
         });
+        toast.success("Cita creada y notificación WhatsApp enviada");
       } catch (error) {
         console.error("Error sending WhatsApp notification:", error);
-        // No bloquear la creación de la cita por error en notificación
+        toast.success("Cita creada (error en notificación WhatsApp)");
       }
 
-      toast.success("Cita creada exitosamente");
       onAppointmentCreated();
       onClose();
       resetForm();
@@ -491,80 +522,40 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
             <div>
               <Label>Horarios Disponibles *</Label>
               <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
-                {availableSlots.map((slot) => {
-                  // Crear segmentos de 1 hora desde cada slot disponible
-                  const startTime = new Date(slot.start_time);
-                  const endTime = new Date(slot.end_time);
-                  const oneHourSlots = [];
-                  
-                  let currentTime = new Date(startTime);
-                  while (currentTime < endTime) {
-                    const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
-                    
-                    if (slotEndTime <= endTime) {
-                      const startTimeStr = currentTime.toLocaleTimeString('es-ES', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                        timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
-                      });
-                      const endTimeStr = slotEndTime.toLocaleTimeString('es-ES', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                        timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
-                      });
-                      
-                      oneHourSlots.push({
-                        id: `${slot.id}-${currentTime.getTime()}`,
-                        startTime: startTimeStr,
-                        endTime: endTimeStr,
-                        isoTime: startTimeStr
-                      });
-                    }
-                    
-                    currentTime = new Date(slotEndTime);
-                  }
-                  
-                  return oneHourSlots.map((hourSlot) => (
+                {availableSlots.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay horarios disponibles para esta fecha</p>
+                    <p className="text-sm">El doctor debe configurar disponibilidad primero</p>
+                  </div>
+                ) : (
+                  availableSlots.map((slot) => (
                     <div
-                      key={hourSlot.id}
-                      className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedTime === hourSlot.isoTime 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-border hover:border-primary/50 hover:bg-primary/5'
-                      }`}
-                      onClick={() => setSelectedTime(hourSlot.isoTime)}
+                      key={slot.id}
+                      className={cn(
+                        "flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors",
+                        selectedTime === slot.start_time
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
+                      )}
+                      onClick={() => setSelectedTime(slot.start_time)}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                         <div>
-                          <p className="font-medium text-sm">Disponible</p>
-                          <p className="text-xs text-muted-foreground">
-                            {hourSlot.startTime} - {hourSlot.endTime} (60 minutos)
-                          </p>
+                          <div className="font-medium">Disponible</div>
+                          <div className="text-sm text-muted-foreground">
+                            {slot.startTime} - {slot.endTime} (60 minutos)
+                          </div>
                         </div>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        selectedTime === hourSlot.isoTime 
-                          ? 'border-primary bg-primary' 
-                          : 'border-muted-foreground'
-                      }`}>
-                        {selectedTime === hourSlot.isoTime && (
-                          <div className="w-2 h-2 rounded-full bg-white"></div>
-                        )}
-                      </div>
+                      {selectedTime === slot.start_time && (
+                        <div className="text-primary font-medium">Seleccionado</div>
+                      )}
                     </div>
-                  ));
-                })}
+                  ))
+                )}
               </div>
-              {availableSlots.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No hay horarios disponibles para esta fecha</p>
-                  <p className="text-sm">El doctor debe configurar disponibilidad primero</p>
-                </div>
-              )}
             </div>
           )}
 
