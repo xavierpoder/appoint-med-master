@@ -118,14 +118,17 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
       console.log('=== EXISTING APPOINTMENTS ===');
       console.log('Raw appointments data:', appointments);
       
-      // Crear lista de horarios ocupados con formato exacto
+      // Crear lista de horarios ocupados con formato exacto - NORMALIZAR FORMATO
       const occupiedTimes = appointments?.map(appt => {
-        console.log('Appointment time:', appt.time, 'Type:', typeof appt.time);
-        return appt.time;
+        console.log('Original appointment time:', appt.time, 'Type:', typeof appt.time);
+        // Convertir a formato ISO estándar para comparación
+        const normalizedTime = new Date(appt.time).toISOString();
+        console.log('Normalized appointment time:', normalizedTime);
+        return normalizedTime;
       }) || [];
       
       console.log('=== OCCUPIED TIMES LIST ===');
-      console.log('Occupied times array:', occupiedTimes);
+      console.log('Occupied times array (normalized):', occupiedTimes);
 
       // Obtener slots disponibles del doctor
       const { data, error } = await supabase
