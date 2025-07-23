@@ -415,7 +415,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         await supabase.functions.invoke("send-whatsapp-notification", {
           body: {
             appointmentId: appointment.id,
-            type: "appointment_confirmation"
+            type: "confirmation"
           }
         });
         toast.success("Cita creada y notificación WhatsApp enviada");

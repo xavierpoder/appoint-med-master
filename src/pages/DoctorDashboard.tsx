@@ -13,7 +13,6 @@ import AppointmentDetailsModal from "@/components/appointments/AppointmentDetail
 import CreateAppointmentModal from "@/components/appointments/CreateAppointmentModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppTest } from "@/components/WhatsAppTest";
 
 interface Appointment {
   id: string;
@@ -315,11 +314,6 @@ const DoctorDashboard = () => {
           <TabsContent value="calendar" className="mt-6">
             <h2 className="text-2xl font-semibold mb-4">Mi Calendario</h2>
             <CustomCalendar />
-            
-            {/* Test WhatsApp component - temporal */}
-            <div className="mt-8">
-              <WhatsAppTest />
-            </div>
           </TabsContent>
         </Tabs>
       </Card>
