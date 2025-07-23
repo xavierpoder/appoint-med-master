@@ -334,10 +334,11 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
           return;
         }
 
-        // Crear nuevo paciente usando un email único para evitar rate limiting
+        // Crear nuevo paciente usando un email válido único para evitar rate limiting
         const timestamp = Date.now();
-        const uniqueEmail = `${formData.idNumber}_${timestamp}@temp.local`;
+        const uniqueEmail = `patient_${formData.idNumber}_${timestamp}@example.com`;
         
+        console.log("Creating patient with temporary email:", uniqueEmail);
         try {
           const { data: newUser, error: authError } = await supabase.auth.signUp({
             email: uniqueEmail, // Email único temporal
