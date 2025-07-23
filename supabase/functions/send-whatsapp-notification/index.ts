@@ -173,15 +173,32 @@ serve(async (req) => {
       throw new Error('Appointment not found');
     }
 
+    // Get doctor details including education, years_experience, and consultation_fee
+    const { data: doctorDetails, error: doctorError } = await supabase
+      .from('doctor_view')
+      .select('*')
+      .eq('id', appointment.doctor_id)
+      .single();
+
+    if (doctorError) {
+      console.error('Error fetching doctor details:', doctorError);
+    }
+
     // Format date and time
     const appointmentDate = new Date(appointment.time);
+    const endTime = new Date(appointmentDate.getTime() + (appointment.duration_minutes || 60) * 60 * 1000);
+    
     const formattedDate = appointmentDate.toLocaleDateString('es-ES', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-    const formattedTime = appointmentDate.toLocaleTimeString('es-ES', {
+    const formattedStartTime = appointmentDate.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    const formattedEndTime = endTime.toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -204,7 +221,22 @@ serve(async (req) => {
       if (patientPhone) {
         const isRegistered = await validateSandboxUser(patientPhone);
         if (isRegistered) {
-          const patientMessage = `Hola ${appointment.patient_name}, has reservado una cita con ${appointment.doctor_name} el ${formattedDate} a las ${formattedTime}. Responde CONFIRMAR para aceptar o CANCELAR para reprogramar.`;
+          // Create detailed confirmation message with doctor information
+          const patientMessage = `*Confirmación de Cita Médica*
+
+🏥 *Información del doctor:*
+- *Doctor:* ${appointment.doctor_name || (doctorDetails ? `Dr. ${doctorDetails.first_name} ${doctorDetails.last_name}` : 'Doctor no especificado')}
+- *Especialidad:* ${appointment.specialty || appointment.doctor_specialty || 'No especificada'}${doctorDetails?.years_experience ? `
+- *Experiencia:* ${doctorDetails.years_experience} años` : ''}${doctorDetails?.consultation_fee ? `
+- *Tarifa:* $${doctorDetails.consultation_fee} USD` : ''}${doctorDetails?.education ? `
+- *Educación:* ${doctorDetails.education}` : ''}
+
+📅 *Horario seleccionado:*
+${formattedStartTime} - ${formattedEndTime} (${appointment.duration_minutes || 60} minutos)
+${formattedDate}
+
+Gracias por usar nuestro servicio. ¡Nos vemos en la consulta!`;
+
           messages.push({
             to: `whatsapp:${patientPhone}`,
             message: patientMessage
