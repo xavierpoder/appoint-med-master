@@ -163,7 +163,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
           if (slotEndTime <= endTime) {
             const slotStartISO = currentTime.toISOString();
             
-            // COMPARACIÓN EXACTA
+            // VERIFICAR si está ocupado pero INCLUIR TODOS los slots
             const isOccupied = occupiedTimes.includes(slotStartISO);
             
             console.log('=== SLOT CHECK ===');
@@ -172,30 +172,33 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
             console.log('Is occupied?', isOccupied);
             console.log('Matching against:', occupiedTimes);
             
-            if (!isOccupied) {
-              oneHourSlots.push({
-                id: `${slot.id}-${currentTime.getTime()}`,
-                originalSlotId: slot.id,
-                title: 'Disponible',
-                start: new Date(currentTime),
-                end: new Date(slotEndTime),
-                startTime: currentTime.toLocaleTimeString('es-ES', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  timeZone: 'UTC'
-                }),
-                endTime: slotEndTime.toLocaleTimeString('es-ES', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  timeZone: 'UTC'
-                }),
-                doctor_id: slot.doctor_id,
-                is_available: slot.is_available,
-                start_time_iso: slotStartISO
-              });
-              console.log('✅ SLOT ADDED as available');
+            // AGREGAR TODOS los slots, ocupados y disponibles
+            oneHourSlots.push({
+              id: `${slot.id}-${currentTime.getTime()}`,
+              originalSlotId: slot.id,
+              title: isOccupied ? 'Ocupado' : 'Disponible',
+              start: new Date(currentTime),
+              end: new Date(slotEndTime),
+              startTime: currentTime.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'UTC'
+              }),
+              endTime: slotEndTime.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'UTC'
+              }),
+              doctor_id: slot.doctor_id,
+              is_available: slot.is_available,
+              start_time_iso: slotStartISO,
+              isOccupied: isOccupied // Nueva propiedad para marcar slots ocupados
+            });
+            
+            if (isOccupied) {
+              console.log('📅 SLOT ADDED as occupied');
             } else {
-              console.log('❌ SLOT FILTERED OUT (occupied)');
+              console.log('✅ SLOT ADDED as available');
             }
           }
           
@@ -204,8 +207,9 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
       });
 
       console.log('=== FINAL RESULT ===');
-      console.log('Total available slots after filtering:', oneHourSlots.length);
-      console.log('Available slots:', oneHourSlots.map(s => s.startTime));
+      console.log('Total slots (available + occupied):', oneHourSlots.length);
+      console.log('Available slots:', oneHourSlots.filter(s => !s.isOccupied).map(s => s.startTime));
+      console.log('Occupied slots:', oneHourSlots.filter(s => s.isOccupied).map(s => s.startTime));
       
       setAvailableSlots(oneHourSlots);
     } catch (error) {
@@ -587,25 +591,41 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
                     <div
                       key={slot.id}
                       className={cn(
-                        "flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors",
-                        selectedTime === slot.start_time_iso
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
+                        "flex items-center justify-between p-4 border rounded-lg transition-colors",
+                        slot.isOccupied 
+                          ? "border-red-200 bg-red-50 cursor-not-allowed opacity-75"
+                          : selectedTime === slot.start_time_iso
+                            ? "border-primary bg-primary/5 cursor-pointer"
+                            : "border-border hover:border-primary/50 cursor-pointer"
                       )}
-                      onClick={() => setSelectedTime(slot.start_time_iso)}
+                      onClick={() => {
+                        if (!slot.isOccupied) {
+                          setSelectedTime(slot.start_time_iso);
+                        }
+                      }}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <div className={cn(
+                          "w-3 h-3 rounded-full",
+                          slot.isOccupied ? "bg-red-500" : "bg-green-500"
+                        )}></div>
                         <div>
-                          <div className="font-medium">Disponible</div>
+                          <div className={cn(
+                            "font-medium",
+                            slot.isOccupied ? "text-red-700" : "text-foreground"
+                          )}>
+                            {slot.isOccupied ? "Ocupado" : "Disponible"}
+                          </div>
                           <div className="text-sm text-muted-foreground">
                             {slot.startTime} - {slot.endTime} (60 minutos)
                           </div>
                         </div>
                       </div>
-                      {selectedTime === slot.start_time_iso && (
+                      {slot.isOccupied ? (
+                        <div className="text-red-600 font-medium text-sm">No disponible</div>
+                      ) : selectedTime === slot.start_time_iso ? (
                         <div className="text-primary font-medium">Seleccionado</div>
-                      )}
+                      ) : null}
                     </div>
                   ))
                 )}
