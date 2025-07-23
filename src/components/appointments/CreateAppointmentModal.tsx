@@ -45,12 +45,13 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
   const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>("");
-  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   // Form data
   const [formData, setFormData] = useState({
@@ -87,29 +88,64 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
     }
   };
 
-  // Cargar horarios disponibles para la fecha seleccionada (usando la misma lógica del calendario)
+  // Cargar horarios disponibles usando exactamente la misma lógica del calendario principal
   const loadAvailableSlots = async (date: Date) => {
     if (!user) return;
 
     try {
-      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dateStr = date.toISOString().split('T')[0];
       const startOfDay = `${dateStr}T00:00:00.000Z`;
       const endOfDay = `${dateStr}T23:59:59.999Z`;
 
-      // Obtener slots disponibles del doctor
-      const { data: slots, error: slotsError } = await supabase
-        .from("availability_slots")
-        .select("id, start_time, end_time")
-        .eq("doctor_id", user.id)
-        .eq("is_available", true)
-        .gte("start_time", startOfDay)
-        .lte("start_time", endOfDay)
-        .order("start_time");
+      // Obtener slots disponibles del doctor (misma lógica que useCustomCalendar)
+      const { data, error } = await supabase
+        .from('availability_slots')
+        .select('*')
+        .eq('doctor_id', user.id)
+        .gte('start_time', startOfDay)
+        .lte('start_time', endOfDay)
+        .eq('is_available', true)
+        .order('start_time');
 
-      if (slotsError) {
-        console.error("Error fetching slots:", slotsError);
-        return;
-      }
+      if (error) throw error;
+
+      // Dividir cada availability slot en slots de 1 hora (igual que useCustomCalendar)
+      const oneHourSlots = [];
+      data.forEach((slot: any) => {
+        const startTime = new Date(slot.start_time);
+        const endTime = new Date(slot.end_time);
+        
+        let currentTime = new Date(startTime);
+        while (currentTime < endTime) {
+          const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+          
+          // Don't create slots that extend beyond the original availability
+          if (slotEndTime <= endTime) {
+            oneHourSlots.push({
+              id: `${slot.id}-${currentTime.getTime()}`, // Unique ID for each hour slot
+              originalSlotId: slot.id,
+              title: 'Disponible',
+              start: new Date(currentTime),
+              end: new Date(slotEndTime),
+              startTime: currentTime.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'UTC' // Usar UTC igual que en useCustomCalendar
+              }),
+              endTime: slotEndTime.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'UTC' // Usar UTC igual que en useCustomCalendar
+              }),
+              doctor_id: slot.doctor_id,
+              is_available: slot.is_available,
+              start_time_iso: currentTime.toISOString() // Para usar en la creación de la cita
+            });
+          }
+          
+          currentTime = new Date(slotEndTime);
+        }
+      });
 
       // Obtener citas ya agendadas para filtrar horarios ocupados
       const { data: appointments, error: appointmentsError } = await supabase
@@ -124,49 +160,15 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         return;
       }
 
-      // Dividir cada slot en segmentos de 1 hora (igual que en el calendario)
-      const oneHourSlots = [];
+      // Filtrar slots que no estén ocupados
       const occupiedTimes = appointments?.map(appt => appt.time) || [];
-      
-      slots?.forEach((slot: any) => {
-        const startTime = new Date(slot.start_time);
-        const endTime = new Date(slot.end_time);
-        
-        let currentTime = new Date(startTime);
-        while (currentTime < endTime) {
-          const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000); // Add 1 hour
-          
-          // Don't create slots that extend beyond the original availability
-          if (slotEndTime <= endTime) {
-            const slotStartISO = currentTime.toISOString();
-            
-            // Solo agregar si no está ocupado
-            if (!occupiedTimes.includes(slotStartISO)) {
-              oneHourSlots.push({
-                id: `${slot.id}-${currentTime.getTime()}`,
-                start_time: slotStartISO,
-                end_time: slotEndTime.toISOString(),
-                startTime: currentTime.toLocaleTimeString('es-ES', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  timeZone: 'America/Guayaquil' // Zona horaria Ecuador
-                }),
-                endTime: slotEndTime.toLocaleTimeString('es-ES', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  timeZone: 'America/Guayaquil' // Zona horaria Ecuador
-                })
-              });
-            }
-          }
-          
-          currentTime = new Date(slotEndTime);
-        }
-      });
+      const availableSlots = oneHourSlots.filter(slot => 
+        !occupiedTimes.includes(slot.start_time_iso)
+      );
 
-      setAvailableSlots(oneHourSlots);
+      setAvailableSlots(availableSlots);
     } catch (error) {
-      console.error("Error loading available slots:", error);
+      console.error('Error fetching availability slots:', error);
     }
   };
 
@@ -310,13 +312,19 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         return;
       }
 
-      // Crear la cita usando directamente el selectedTime que ya está en formato ISO
+      // Crear la cita usando el tiempo ISO del slot seleccionado
+      const selectedSlot = availableSlots.find(slot => slot.start_time_iso === selectedTime);
+      if (!selectedSlot) {
+        toast.error("Error: Horario seleccionado no válido");
+        setLoading(false);
+        return;
+      }
       const { data: appointment, error: appointmentError } = await supabase
         .from("appointments")
         .insert({
           doctor_id: user.id,
           patient_id: patientId,
-          time: selectedTime, // selectedTime ya es el ISO string correcto
+          time: selectedSlot.start_time_iso, // Usar el tiempo ISO del slot
           duration_minutes: 60,
           status: "scheduled",
           specialty: "Consulta General",
@@ -491,7 +499,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
           {/* Selector de fecha */}
           <div>
             <Label>Fecha de la Cita *</Label>
-            <Popover>
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -508,7 +516,11 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
                 <Calendar
                   mode="single"
                   selected={selectedDate}
-                  onSelect={setSelectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    setDatePickerOpen(false); // Cerrar el popover al seleccionar
+                    setSelectedTime(""); // Reset time selection
+                  }}
                   disabled={(date) => date < new Date() || date.getDay() === 0} // No domingos ni fechas pasadas
                   initialFocus
                   className="pointer-events-auto"
@@ -534,11 +546,11 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
                       key={slot.id}
                       className={cn(
                         "flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors",
-                        selectedTime === slot.start_time
+                        selectedTime === slot.start_time_iso
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-primary/50"
                       )}
-                      onClick={() => setSelectedTime(slot.start_time)}
+                      onClick={() => setSelectedTime(slot.start_time_iso)}
                     >
                       <div className="flex items-center space-x-3">
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -549,7 +561,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
                           </div>
                         </div>
                       </div>
-                      {selectedTime === slot.start_time && (
+                      {selectedTime === slot.start_time_iso && (
                         <div className="text-primary font-medium">Seleccionado</div>
                       )}
                     </div>
