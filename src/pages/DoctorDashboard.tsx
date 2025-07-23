@@ -4,12 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, User, ArrowUp, ArrowDown, Settings } from "lucide-react";
+import { Calendar, Clock, User, ArrowUp, ArrowDown, Settings, Plus } from "lucide-react";
 import { toast } from "sonner";
 import CustomCalendar from "@/components/calendar/CustomCalendar";
 import AvailabilityManager from "@/components/calendar/AvailabilityManager";
 import AppointmentCard from "@/components/appointments/AppointmentCard";
 import AppointmentDetailsModal from "@/components/appointments/AppointmentDetailsModal";
+import CreateAppointmentModal from "@/components/appointments/CreateAppointmentModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -35,6 +36,7 @@ const DoctorDashboard = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(true);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [isCreateAppointmentOpen, setIsCreateAppointmentOpen] = useState(false);
   const { user, userRole, signOut } = useAuth();
 
   useEffect(() => {
@@ -147,6 +149,95 @@ const DoctorDashboard = () => {
     navigate("/auth");
   };
 
+  const refreshAppointments = async () => {
+    if (user && userRole === 'doctor') {
+      setLoadingAppointments(true);
+      try {
+        // Get today's date range
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+
+        const { data, error } = await supabase
+          .from('appointments')
+          .select(`
+            id,
+            time,
+            specialty,
+            status,
+            patient_id
+          `)
+          .eq('doctor_id', user.id)
+          .gte('time', startOfDay)
+          .lte('time', endOfDay);
+
+        if (error) {
+          console.error("Error fetching appointments:", error);
+          toast.error("Error al cargar las citas.");
+        } else {
+          // Get patient IDs to fetch their profiles
+          const patientIds = data.map(appt => appt.patient_id).filter(id => id);
+          let patientProfiles = [];
+          
+          if (patientIds.length > 0) {
+            const { data: profilesData, error: profilesError } = await supabase
+              .from("patient_view")
+              .select("id, first_name, last_name, phone, email")
+              .in("id", patientIds);
+              
+            if (profilesError) {
+              console.error("Error fetching patient profiles:", profilesError);
+            } else {
+              patientProfiles = profilesData || [];
+            }
+          }
+          
+          const formattedAppointments = data.map((appt: any) => {
+            const profile = patientProfiles.find((p: any) => p.id === appt.patient_id);
+            
+            // Extraer la hora directamente del string sin conversión de timezone
+            const timeString = appt.time.includes('T') 
+              ? appt.time.split('T')[1].substring(0, 5)
+              : new Date(appt.time).toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  hour12: false
+                });
+            
+            // Calcular hora de fin (asumiendo 1 hora de duración)
+            const startTime = timeString;
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const endHours = (hours + 1) % 24;
+            const endTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            
+            return {
+              id: appt.id,
+              patientName: profile ? `${profile.first_name} ${profile.last_name}` : 'Paciente sin perfil',
+              time: `${startTime} - ${endTime}`,
+              originalTime: appt.time,
+              specialty: appt.specialty,
+              status: appt.status,
+              patientDetails: profile ? {
+                id: profile.id,
+                phone: profile.phone || 'No disponible',
+                email: profile.email || 'No disponible',
+                firstName: profile.first_name,
+                lastName: profile.last_name
+              } : null
+            };
+          });
+          
+          setAppointments(formattedAppointments);
+        }
+      } catch (error) {
+        console.error("Error fetching appointments:", error);
+        toast.error("Error al cargar las citas.");
+      } finally {
+        setLoadingAppointments(false);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10">
       <Card className="w-full max-w-4xl p-8 shadow-lg rounded-lg bg-white">
@@ -226,6 +317,22 @@ const DoctorDashboard = () => {
           </TabsContent>
         </Tabs>
       </Card>
+
+      {/* Botón flotante para crear nueva cita */}
+      <Button
+        onClick={() => setIsCreateAppointmentOpen(true)}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-shadow bg-primary hover:bg-primary/90"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+
+      {/* Modal para crear cita */}
+      <CreateAppointmentModal
+        isOpen={isCreateAppointmentOpen}
+        onClose={() => setIsCreateAppointmentOpen(false)}
+        onAppointmentCreated={refreshAppointments}
+      />
     </div>
   );
 };
