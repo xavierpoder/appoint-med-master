@@ -88,7 +88,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
     }
   };
 
-  // Cargar horarios disponibles usando exactamente la misma lógica del calendario principal
+  // Cargar horarios disponibles excluyendo horarios ya ocupados
   const loadAvailableSlots = async (date: Date) => {
     if (!user) return;
 
@@ -96,6 +96,8 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
       const dateStr = date.toISOString().split('T')[0];
       const startOfDay = `${dateStr}T00:00:00.000Z`;
       const endOfDay = `${dateStr}T23:59:59.999Z`;
+
+      console.log('Loading slots for date:', dateStr, 'doctor:', user.id);
 
       // Obtener slots disponibles del doctor (misma lógica que useCustomCalendar)
       const { data, error } = await supabase
@@ -107,7 +109,32 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         .eq('is_available', true)
         .order('start_time');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching availability slots:', error);
+        throw error;
+      }
+
+      console.log('Available slots from DB:', data);
+
+      // Obtener citas ya agendadas para filtrar horarios ocupados
+      const { data: appointments, error: appointmentsError } = await supabase
+        .from("appointments")
+        .select("time, id")
+        .eq("doctor_id", user.id)
+        .gte("time", startOfDay)
+        .lte("time", endOfDay)
+        .eq("status", "scheduled"); // Solo citas programadas
+
+      if (appointmentsError) {
+        console.error("Error fetching appointments:", appointmentsError);
+        return;
+      }
+
+      console.log('Existing appointments:', appointments);
+
+      // Crear lista de horarios ocupados
+      const occupiedTimes = appointments?.map(appt => appt.time) || [];
+      console.log('Occupied times:', occupiedTimes);
 
       // Dividir cada availability slot en slots de 1 hora (igual que useCustomCalendar)
       const oneHourSlots = [];
@@ -121,54 +148,45 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
           
           // Don't create slots that extend beyond the original availability
           if (slotEndTime <= endTime) {
-            oneHourSlots.push({
-              id: `${slot.id}-${currentTime.getTime()}`, // Unique ID for each hour slot
-              originalSlotId: slot.id,
-              title: 'Disponible',
-              start: new Date(currentTime),
-              end: new Date(slotEndTime),
-              startTime: currentTime.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                timeZone: 'UTC' // Usar UTC igual que en useCustomCalendar
-              }),
-              endTime: slotEndTime.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                timeZone: 'UTC' // Usar UTC igual que en useCustomCalendar
-              }),
-              doctor_id: slot.doctor_id,
-              is_available: slot.is_available,
-              start_time_iso: currentTime.toISOString() // Para usar en la creación de la cita
-            });
+            const slotStartISO = currentTime.toISOString();
+            
+            // CRÍTICO: Solo agregar si NO está ocupado
+            const isOccupied = occupiedTimes.includes(slotStartISO);
+            console.log('Checking slot', currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }), 'ISO:', slotStartISO, 'occupied:', isOccupied);
+            
+            if (!isOccupied) {
+              oneHourSlots.push({
+                id: `${slot.id}-${currentTime.getTime()}`, // Unique ID for each hour slot
+                originalSlotId: slot.id,
+                title: 'Disponible',
+                start: new Date(currentTime),
+                end: new Date(slotEndTime),
+                startTime: currentTime.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  timeZone: 'UTC' // Usar UTC igual que en useCustomCalendar
+                }),
+                endTime: slotEndTime.toLocaleTimeString('es-ES', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  timeZone: 'UTC' // Usar UTC igual que en useCustomCalendar
+                }),
+                doctor_id: slot.doctor_id,
+                is_available: slot.is_available,
+                start_time_iso: slotStartISO // Para usar en la creación de la cita
+              });
+            }
           }
           
           currentTime = new Date(slotEndTime);
         }
       });
 
-      // Obtener citas ya agendadas para filtrar horarios ocupados
-      const { data: appointments, error: appointmentsError } = await supabase
-        .from("appointments")
-        .select("time")
-        .eq("doctor_id", user.id)
-        .gte("time", startOfDay)
-        .lte("time", endOfDay);
-
-      if (appointmentsError) {
-        console.error("Error fetching appointments:", appointmentsError);
-        return;
-      }
-
-      // Filtrar slots que no estén ocupados
-      const occupiedTimes = appointments?.map(appt => appt.time) || [];
-      const availableSlots = oneHourSlots.filter(slot => 
-        !occupiedTimes.includes(slot.start_time_iso)
-      );
-
-      setAvailableSlots(availableSlots);
+      console.log('Final available slots (excluding occupied):', oneHourSlots);
+      setAvailableSlots(oneHourSlots);
     } catch (error) {
-      console.error('Error fetching availability slots:', error);
+      console.error('Error loading available slots:', error);
+      toast.error('Error al cargar horarios disponibles');
     }
   };
 
