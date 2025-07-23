@@ -222,7 +222,7 @@ serve(async (req) => {
         const isRegistered = await validateSandboxUser(patientPhone);
         if (isRegistered) {
           // Create detailed confirmation message with doctor information
-          const patientMessage = `Hola ${appointment.patient_name} saludamos desde Clínica Master esto es un mensaje *Confirmación de Cita Médica*
+          const patientMessage = `Hola *${appointment.patient_name}* *Confirmación de Cita Médica en Clinica Master*
 
 🏥 *Información del doctor:*
 - *Doctor:* ${appointment.doctor_name || (doctorDetails ? `Dr. ${doctorDetails.first_name} ${doctorDetails.last_name}` : 'Doctor no especificado')}
@@ -233,7 +233,7 @@ serve(async (req) => {
 📅 *Horario seleccionado:*
 ${formattedStartTime} - ${formattedEndTime} (${appointment.duration_minutes || 60} minutos)
 
-Gracias por usar nuestro servicio. ¡Nos vemos en la consulta!`;
+Gracias por usar nuestro servicio. no olvides estar 20 min antes ¡Nos vemos en la consulta!`;
 
           messages.push({
             to: `whatsapp:${patientPhone}`,
