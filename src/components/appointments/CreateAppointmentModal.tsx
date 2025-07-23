@@ -334,14 +334,11 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
           return;
         }
 
-        // Crear nuevo paciente usando un email válido único para evitar rate limiting
-        const timestamp = Date.now();
-        const uniqueEmail = `patient_${formData.idNumber}_${timestamp}@example.com`;
-        
-        console.log("Creating patient with temporary email:", uniqueEmail);
+        // Crear nuevo paciente usando el email real del usuario
+        console.log("Creating patient with email:", formData.email);
         try {
           const { data: newUser, error: authError } = await supabase.auth.signUp({
-            email: uniqueEmail, // Email único temporal
+            email: formData.email, // Usar el email real del paciente
             password: Math.random().toString(36).slice(-8),
             options: {
               data: {
@@ -358,6 +355,8 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
             console.error("Error creating user:", authError);
             if (authError.message.includes("rate")) {
               toast.error("Demasiados intentos. Espere un momento e intente nuevamente.");
+            } else if (authError.message.includes("already registered")) {
+              toast.error("Este email ya está registrado. Use un email diferente.");
             } else {
               toast.error("Error al crear el paciente: " + authError.message);
             }
@@ -367,13 +366,8 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
 
           patientId = newUser.user?.id;
           
-          // Actualizar el perfil con el email real después de la creación
-          if (patientId) {
-            await supabase
-              .from("profiles")
-              .update({ email: formData.email })
-              .eq("id", patientId);
-          }
+          // No necesitamos actualizar el email porque ya usamos el real
+          console.log("Patient created successfully with ID:", patientId);
         } catch (error) {
           console.error("Error in signup process:", error);
           toast.error("Error al crear el paciente");
