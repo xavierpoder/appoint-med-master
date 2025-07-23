@@ -231,9 +231,10 @@ serve(async (req) => {
 - *Educación:* ${doctorDetails.education}` : ''}
 
 📅 *Horario seleccionado:*
+fecha: ${formattedDate}
 ${formattedStartTime} - ${formattedEndTime} (${appointment.duration_minutes || 60} minutos)
 
-Gracias por usar nuestro servicio. no olvides estar 20 min antes ¡Nos vemos en la consulta!`;
+Gracias por usar nuestro servicio. *no olvides estar 20 min antes* ¡Nos vemos en la consulta!`;
 
           messages.push({
             to: `whatsapp:${patientPhone}`,
