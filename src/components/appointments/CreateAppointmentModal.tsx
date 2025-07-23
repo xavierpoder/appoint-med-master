@@ -314,12 +314,19 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
 
       // Si es un nuevo paciente, crearlo primero
       if (isNewPatient || !selectedPatient) {
-        // Verificar si la cédula ya existe
+        // Verificar si la cédula ya existe (usando maybeSingle para evitar error)
         const { data: existingPatient, error: checkError } = await supabase
           .from("profiles")
           .select("id")
           .eq("id_number", formData.idNumber)
-          .single();
+          .maybeSingle(); // Cambiar de .single() a .maybeSingle()
+
+        if (checkError) {
+          console.error("Error checking existing patient:", checkError);
+          toast.error("Error al verificar paciente existente");
+          setLoading(false);
+          return;
+        }
 
         if (existingPatient) {
           toast.error("Ya existe un paciente con esta cédula");
@@ -327,29 +334,51 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
           return;
         }
 
-        // Crear nuevo paciente
-        const { data: newUser, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: Math.random().toString(36).slice(-8), // Password temporal
-          options: {
-            data: {
-              first_name: formData.firstName,
-              last_name: formData.lastName,
-              role: "patient",
-              phone: formatPhoneNumber(formData.phone),
-              id_number: formData.idNumber,
+        // Crear nuevo paciente usando un email único para evitar rate limiting
+        const timestamp = Date.now();
+        const uniqueEmail = `${formData.idNumber}_${timestamp}@temp.local`;
+        
+        try {
+          const { data: newUser, error: authError } = await supabase.auth.signUp({
+            email: uniqueEmail, // Email único temporal
+            password: Math.random().toString(36).slice(-8),
+            options: {
+              data: {
+                first_name: formData.firstName,
+                last_name: formData.lastName,
+                role: "patient",
+                phone: formatPhoneNumber(formData.phone),
+                id_number: formData.idNumber,
+              }
             }
-          }
-        });
+          });
 
-        if (authError) {
-          console.error("Error creating user:", authError);
+          if (authError) {
+            console.error("Error creating user:", authError);
+            if (authError.message.includes("rate")) {
+              toast.error("Demasiados intentos. Espere un momento e intente nuevamente.");
+            } else {
+              toast.error("Error al crear el paciente: " + authError.message);
+            }
+            setLoading(false);
+            return;
+          }
+
+          patientId = newUser.user?.id;
+          
+          // Actualizar el perfil con el email real después de la creación
+          if (patientId) {
+            await supabase
+              .from("profiles")
+              .update({ email: formData.email })
+              .eq("id", patientId);
+          }
+        } catch (error) {
+          console.error("Error in signup process:", error);
           toast.error("Error al crear el paciente");
           setLoading(false);
           return;
         }
-
-        patientId = newUser.user?.id;
       }
 
       if (!patientId) {
