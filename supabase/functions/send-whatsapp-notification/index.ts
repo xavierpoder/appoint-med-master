@@ -14,6 +14,8 @@ serve(async (req) => {
 
   try {
     const { type, appointmentId, patientPhone, doctorPhone, message } = await req.json();
+    
+    console.log('WhatsApp notification request:', { type, appointmentId, patientPhone, doctorPhone });
 
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
@@ -213,13 +215,25 @@ serve(async (req) => {
       return data && data.length > 0;
     };
 
+    // Get patient and doctor phone numbers from appointment data
+    const patientPhoneFromDB = appointment.patient_phone;
+    const doctorPhoneFromDB = doctorDetails?.phone;
+    
+    console.log('Phone numbers from DB:', { patientPhoneFromDB, doctorPhoneFromDB });
+    
+    // Use provided phones or fall back to DB phones
+    const finalPatientPhone = patientPhone || patientPhoneFromDB;
+    const finalDoctorPhone = doctorPhone || doctorPhoneFromDB;
+    
+    console.log('Final phone numbers:', { finalPatientPhone, finalDoctorPhone });
+
     // Send WhatsApp messages
     const messages = [];
 
     if (type === 'confirmation') {
       // Send to patient
-      if (patientPhone) {
-        const isRegistered = await validateSandboxUser(patientPhone);
+      if (finalPatientPhone) {
+        const isRegistered = await validateSandboxUser(finalPatientPhone);
         if (isRegistered) {
           // Create detailed confirmation message with doctor information
           const patientMessage = `Hola *${appointment.patient_name}* *Confirmación de Cita Médica en Clinica Master*
@@ -237,38 +251,38 @@ ${formattedStartTime} - ${formattedEndTime} (${appointment.duration_minutes || 6
 Gracias por usar nuestro servicio. *no olvides estar 20 min antes* ¡Nos vemos en la consulta!`;
 
           messages.push({
-            to: `whatsapp:${patientPhone}`,
+            to: `whatsapp:${finalPatientPhone}`,
             message: patientMessage
           });
         } else {
-          console.log(`Patient ${patientPhone} not registered in sandbox`);
+          console.log(`Patient ${finalPatientPhone} not registered in sandbox`);
         }
       }
 
       // Send to doctor
-      if (doctorPhone) {
-        const isRegistered = await validateSandboxUser(doctorPhone);
+      if (finalDoctorPhone) {
+        const isRegistered = await validateSandboxUser(finalDoctorPhone);
         if (isRegistered) {
-          const doctorMessage = `Nueva cita: ${appointment.patient_name} el ${formattedDate} a las ${formattedTime}. Responde OK para confirmar.`;
+          const doctorMessage = `Nueva cita: ${appointment.patient_name} el ${formattedDate} a las ${formattedStartTime}. Responde OK para confirmar.`;
           messages.push({
-            to: `whatsapp:${doctorPhone}`,
+            to: `whatsapp:${finalDoctorPhone}`,
             message: doctorMessage
           });
         } else {
-          console.log(`Doctor ${doctorPhone} not registered in sandbox`);
+          console.log(`Doctor ${finalDoctorPhone} not registered in sandbox`);
         }
       }
     } else if (type === 'reminder') {
       // Send reminder to patient only
-      if (patientPhone) {
-        const isRegistered = await validateSandboxUser(patientPhone);
+      if (finalPatientPhone) {
+        const isRegistered = await validateSandboxUser(finalPatientPhone);
         if (isRegistered) {
           messages.push({
-            to: `whatsapp:${patientPhone}`,
+            to: `whatsapp:${finalPatientPhone}`,
             message: message
           });
         } else {
-          console.log(`Patient ${patientPhone} not registered in sandbox for reminder`);
+          console.log(`Patient ${finalPatientPhone} not registered in sandbox for reminder`);
         }
       }
     }
