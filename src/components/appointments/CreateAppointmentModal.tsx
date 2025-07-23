@@ -489,33 +489,81 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
           {/* Selector de hora */}
           {selectedDate && (
             <div>
-              <Label>Hora de la Cita *</Label>
-              <div className="grid grid-cols-3 gap-2 mt-2">
+              <Label>Horarios Disponibles *</Label>
+              <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
                 {availableSlots.map((slot) => {
-                  const startTime = new Date(slot.start_time).toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                  });
+                  // Crear segmentos de 1 hora desde cada slot disponible
+                  const startTime = new Date(slot.start_time);
+                  const endTime = new Date(slot.end_time);
+                  const oneHourSlots = [];
                   
-                  return (
-                    <Button
-                      key={slot.id}
-                      variant={selectedTime === startTime ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedTime(startTime)}
-                      className="flex items-center gap-1"
+                  let currentTime = new Date(startTime);
+                  while (currentTime < endTime) {
+                    const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+                    
+                    if (slotEndTime <= endTime) {
+                      const startTimeStr = currentTime.toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
+                      });
+                      const endTimeStr = slotEndTime.toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
+                      });
+                      
+                      oneHourSlots.push({
+                        id: `${slot.id}-${currentTime.getTime()}`,
+                        startTime: startTimeStr,
+                        endTime: endTimeStr,
+                        isoTime: startTimeStr
+                      });
+                    }
+                    
+                    currentTime = new Date(slotEndTime);
+                  }
+                  
+                  return oneHourSlots.map((hourSlot) => (
+                    <div
+                      key={hourSlot.id}
+                      className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedTime === hourSlot.isoTime 
+                          ? 'border-primary bg-primary/10' 
+                          : 'border-border hover:border-primary/50 hover:bg-primary/5'
+                      }`}
+                      onClick={() => setSelectedTime(hourSlot.isoTime)}
                     >
-                      <Clock className="h-3 w-3" />
-                      {startTime}
-                    </Button>
-                  );
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <div>
+                          <p className="font-medium text-sm">Disponible</p>
+                          <p className="text-xs text-muted-foreground">
+                            {hourSlot.startTime} - {hourSlot.endTime} (60 minutos)
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        selectedTime === hourSlot.isoTime 
+                          ? 'border-primary bg-primary' 
+                          : 'border-muted-foreground'
+                      }`}>
+                        {selectedTime === hourSlot.isoTime && (
+                          <div className="w-2 h-2 rounded-full bg-white"></div>
+                        )}
+                      </div>
+                    </div>
+                  ));
                 })}
               </div>
               {availableSlots.length === 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  No hay horarios disponibles para esta fecha
-                </p>
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay horarios disponibles para esta fecha</p>
+                  <p className="text-sm">El doctor debe configurar disponibilidad primero</p>
+                </div>
               )}
             </div>
           )}
