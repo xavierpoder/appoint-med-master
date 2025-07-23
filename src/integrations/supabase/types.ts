@@ -377,6 +377,7 @@ export type Database = {
           notes: string | null
           patient_id: string | null
           patient_name: string | null
+          patient_phone: string | null
           specialty: string | null
           status: Database["public"]["Enums"]["appointment_status"] | null
           time: string | null
