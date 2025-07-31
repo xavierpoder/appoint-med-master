@@ -4,13 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, User, ArrowUp, ArrowDown, Settings, Plus } from "lucide-react";
+import { Calendar, Clock, User, ArrowUp, ArrowDown, Settings, Plus, FileText } from "lucide-react";
 import { toast } from "sonner";
 import CustomCalendar from "@/components/calendar/CustomCalendar";
 import AvailabilityManager from "@/components/calendar/AvailabilityManager";
 import AppointmentCard from "@/components/appointments/AppointmentCard";
 import AppointmentDetailsModal from "@/components/appointments/AppointmentDetailsModal";
 import CreateAppointmentModal from "@/components/appointments/CreateAppointmentModal";
+import ClinicalHistoryManager from "@/components/clinical-history/ClinicalHistoryManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -249,7 +250,7 @@ const DoctorDashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="appointments">
               <Calendar className="mr-2 h-4 w-4" /> Citas
             </TabsTrigger>
@@ -258,6 +259,9 @@ const DoctorDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="calendar">
               <Calendar className="mr-2 h-4 w-4" /> Calendario
+            </TabsTrigger>
+            <TabsTrigger value="clinical-history">
+              <FileText className="mr-2 h-4 w-4" /> Historias Clínicas
             </TabsTrigger>
           </TabsList>
 
@@ -314,6 +318,10 @@ const DoctorDashboard = () => {
           <TabsContent value="calendar" className="mt-6">
             <h2 className="text-2xl font-semibold mb-4">Mi Calendario</h2>
             <CustomCalendar />
+          </TabsContent>
+
+          <TabsContent value="clinical-history" className="mt-6">
+            <ClinicalHistoryManager />
           </TabsContent>
         </Tabs>
       </Card>

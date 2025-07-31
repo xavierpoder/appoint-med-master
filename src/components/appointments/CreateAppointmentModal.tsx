@@ -63,7 +63,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
     consultationReason: "",
   });
 
-  // Buscar pacientes existentes
+  // Buscar pacientes existentes desde tabla pacientes
   const searchPatients = async (term: string) => {
     if (term.length < 2) {
       setPatients([]);
@@ -71,18 +71,28 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
     }
 
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, email, phone, id_number")
-        .eq("role", "patient")
-        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,id_number.ilike.%${term}%`)
+      // Buscar en tabla pacientes
+      const { data: pacientesData, error: pacientesError } = await supabase
+        .from("pacientes")
+        .select("id, nombre, apellido, cedula, correo, whatsapp")
+        .or(`cedula.ilike.%${term}%,nombre.ilike.%${term}%,apellido.ilike.%${term}%`)
         .limit(10);
 
-      if (error) {
-        console.error("Error searching patients:", error);
-      } else {
-        setPatients(data || []);
+      if (pacientesError) {
+        console.error("Error searching pacientes:", pacientesError);
       }
+
+      // Convertir formato para compatibilidad
+      const formattedPatients = (pacientesData || []).map(p => ({
+        id: p.id,
+        first_name: p.nombre,
+        last_name: p.apellido,
+        email: p.correo || '',
+        phone: p.whatsapp || '',
+        id_number: p.cedula
+      }));
+
+      setPatients(formattedPatients);
     } catch (error) {
       console.error("Error searching patients:", error);
     }
