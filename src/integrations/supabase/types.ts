@@ -323,6 +323,92 @@ export type Database = {
           },
         ]
       }
+      historias_clinicas: {
+        Row: {
+          created_at: string
+          diagnostico: string | null
+          doctor_id: string
+          fecha_ingreso: string
+          id: string
+          medicamento: string | null
+          paciente_id: string
+          seguimiento: string | null
+          seguimiento_completado: boolean | null
+          sintoma: string | null
+          tratamiento: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          diagnostico?: string | null
+          doctor_id: string
+          fecha_ingreso?: string
+          id?: string
+          medicamento?: string | null
+          paciente_id: string
+          seguimiento?: string | null
+          seguimiento_completado?: boolean | null
+          sintoma?: string | null
+          tratamiento?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          diagnostico?: string | null
+          doctor_id?: string
+          fecha_ingreso?: string
+          id?: string
+          medicamento?: string | null
+          paciente_id?: string
+          seguimiento?: string | null
+          seguimiento_completado?: boolean | null
+          sintoma?: string | null
+          tratamiento?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historias_clinicas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pacientes: {
+        Row: {
+          apellido: string
+          cedula: string
+          correo: string | null
+          created_at: string
+          id: string
+          nombre: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          apellido: string
+          cedula: string
+          correo?: string | null
+          created_at?: string
+          id?: string
+          nombre: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          apellido?: string
+          cedula?: string
+          correo?: string | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
