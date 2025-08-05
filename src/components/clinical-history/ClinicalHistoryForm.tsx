@@ -13,6 +13,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useClinicalHistory } from '@/hooks/useClinicalHistory';
+import { validateFormData, sanitizeText } from '@/utils/validation';
 
 interface Patient {
   id: string;
@@ -58,14 +59,21 @@ const ClinicalHistoryForm: React.FC<ClinicalHistoryFormProps> = ({
       return;
     }
 
+    // Validate form data
+    const validationErrors = validateFormData.clinicalHistory(formData);
+    if (validationErrors.length > 0) {
+      toast.error(validationErrors.join(', '));
+      return;
+    }
+
     const historyData = {
       paciente_id: patient.id,
       fecha_ingreso: fechaIngreso.toISOString().split('T')[0],
-      sintoma: formData.sintoma.trim() || undefined,
-      diagnostico: formData.diagnostico.trim() || undefined,
-      tratamiento: formData.tratamiento.trim() || undefined,
-      medicamento: formData.medicamento.trim() || undefined,
-      seguimiento: formData.seguimiento.trim() || undefined,
+      sintoma: sanitizeText(formData.sintoma).trim() || undefined,
+      diagnostico: sanitizeText(formData.diagnostico).trim() || undefined,
+      tratamiento: sanitizeText(formData.tratamiento).trim() || undefined,
+      medicamento: sanitizeText(formData.medicamento).trim() || undefined,
+      seguimiento: sanitizeText(formData.seguimiento).trim() || undefined,
       seguimiento_completado: formData.seguimientoCompletado
     };
 

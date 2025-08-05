@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Plus } from 'lucide-react';
 import { usePatients } from '@/hooks/usePatients';
+import { sanitizeText } from '@/utils/validation';
 
 interface Patient {
   id: string;
@@ -34,7 +35,7 @@ const PatientSearchInput: React.FC<PatientSearchInputProps> = ({
           <Input
             placeholder={placeholder}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(sanitizeText(e.target.value))}
             className="pl-10"
           />
         </div>

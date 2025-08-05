@@ -45,13 +45,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Detectar admin por email o buscar en profiles
+          // Check for admin role and profile
           setTimeout(async () => {
-            const adminEmail = 'latitudceroimportaciones@hotmail.com'; // Email del administrador
+            // First check if user is an admin
+            const { data: isAdmin } = await supabase
+              .rpc('is_admin');
             
-            if (session.user.email === adminEmail) {
+            if (isAdmin) {
               setUserRole('admin');
             } else {
+              // Check profile for role
               const { data: profile } = await supabase
                 .from('profiles')
                 .select('role')
@@ -75,22 +78,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const adminEmail = 'latitudceroimportaciones@hotmail.com';
-        
-        if (session.user.email === adminEmail) {
-          setUserRole('admin');
-          setLoading(false);
-        } else {
-          supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single()
-            .then(({ data: profile }) => {
-              setUserRole(profile?.role || null);
+        // Check for admin role and profile
+        supabase
+          .rpc('is_admin')
+          .then(({ data: isAdmin }) => {
+            if (isAdmin) {
+              setUserRole('admin');
               setLoading(false);
-            });
-        }
+            } else {
+              supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single()
+                .then(({ data: profile }) => {
+                  setUserRole(profile?.role || null);
+                  setLoading(false);
+                });
+            }
+          });
       } else {
         setLoading(false);
       }
