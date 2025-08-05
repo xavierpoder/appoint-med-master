@@ -559,6 +559,36 @@ export type Database = {
         }
         Relationships: []
       }
+      historias_clinicas_view: {
+        Row: {
+          apellido: string | null
+          cedula: string | null
+          correo: string | null
+          created_at: string | null
+          diagnostico: string | null
+          doctor_id: string | null
+          fecha_ingreso: string | null
+          id: string | null
+          medicamento: string | null
+          nombre: string | null
+          paciente_id: string | null
+          seguimiento: string | null
+          seguimiento_completado: boolean | null
+          sintoma: string | null
+          tratamiento: string | null
+          updated_at: string | null
+          whatsapp: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historias_clinicas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_view: {
         Row: {
           avatar_url: string | null
