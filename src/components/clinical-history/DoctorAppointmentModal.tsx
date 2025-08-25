@@ -162,30 +162,76 @@ const DoctorAppointmentModal: React.FC<DoctorAppointmentModalProps> = ({
       // Buscar o crear el paciente en profiles
       let patientId = null;
 
-      // Primero intentar encontrar el paciente en profiles por cédula
-      const { data: existingProfile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id_number", patient.cedula)
-        .eq("role", "patient")
-        .maybeSingle();
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error("Error checking existing profile:", profileError);
-        toast.error("Error al verificar paciente existente");
+      // Validar que tengamos al menos cédula o correo para crear/buscar el paciente
+      if (!patient.cedula && !patient.correo) {
+        toast.error("El paciente debe tener cédula o correo para agendar una cita");
         setLoading(false);
         return;
+      }
+
+      // Primero intentar encontrar el paciente en profiles por cédula o correo
+      let existingProfile = null;
+      
+      if (patient.cedula) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id_number", patient.cedula)
+          .eq("role", "patient")
+          .maybeSingle();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking existing profile by cedula:", error);
+          toast.error("Error al verificar paciente existente");
+          setLoading(false);
+          return;
+        }
+        existingProfile = data;
+      }
+
+      // Si no se encontró por cédula y tiene correo, buscar por correo
+      if (!existingProfile && patient.correo) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", patient.correo)
+          .eq("role", "patient")
+          .maybeSingle();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking existing profile by email:", error);
+          toast.error("Error al verificar paciente existente");
+          setLoading(false);
+          return;
+        }
+        existingProfile = data;
       }
 
       if (existingProfile) {
         patientId = existingProfile.id;
       } else {
-        // Sanitizar la cédula para email válido
-        const sanitizedCedula = patient.cedula.replace(/[^a-zA-Z0-9]/g, '');
-        const tempEmail = `paciente${sanitizedCedula}@temp.medicalapp.com`;
+        // Determinar el email a usar
+        let emailToUse;
+        if (patient.correo) {
+          emailToUse = patient.correo;
+        } else if (patient.cedula) {
+          // Sanitizar la cédula para email válido
+          const sanitizedCedula = patient.cedula.replace(/[^a-zA-Z0-9]/g, '');
+          if (sanitizedCedula.length > 0) {
+            emailToUse = `paciente${sanitizedCedula}@temp.medicalapp.com`;
+          } else {
+            toast.error("La cédula del paciente no es válida para crear una cuenta");
+            setLoading(false);
+            return;
+          }
+        } else {
+          toast.error("No se puede crear una cuenta sin cédula o correo válidos");
+          setLoading(false);
+          return;
+        }
         
         const { data: newUser, error: authError } = await supabase.auth.signUp({
-          email: tempEmail,
+          email: emailToUse,
           password: Math.random().toString(36).slice(-8),
           options: {
             data: {
@@ -193,7 +239,7 @@ const DoctorAppointmentModal: React.FC<DoctorAppointmentModalProps> = ({
               last_name: patient.apellido,
               role: "patient",
               phone: patient.whatsapp ? formatPhoneNumber(patient.whatsapp) : '',
-              id_number: patient.cedula,
+              id_number: patient.cedula || '',
             }
           }
         });
@@ -207,8 +253,8 @@ const DoctorAppointmentModal: React.FC<DoctorAppointmentModalProps> = ({
 
         patientId = newUser.user?.id;
 
-        // Actualizar el email en el perfil si el paciente tiene email real
-        if (patient.correo && patient.correo !== tempEmail) {
+        // Actualizar el email en el perfil si el paciente tiene email real y se usó un email temporal
+        if (patient.correo && emailToUse.includes("@temp.medicalapp.com")) {
           await supabase
             .from("profiles")
             .update({ email: patient.correo })
