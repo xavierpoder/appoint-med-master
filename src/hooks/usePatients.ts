@@ -25,6 +25,22 @@ export const usePatients = () => {
 
     setLoading(true);
     try {
+      console.log('Searching patients with term:', term);
+      
+      // First, let's check if we have access to the table
+      const { data: testData, error: testError } = await supabase
+        .from('pacientes')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        console.error('No access to pacientes table:', testError);
+        toast.error('Sin acceso a la tabla de pacientes. Debe ser doctor para buscar pacientes.');
+        return;
+      }
+
+      console.log('Table access test passed');
+
       const { data, error } = await supabase
         .from('pacientes')
         .select('*')
@@ -34,10 +50,11 @@ export const usePatients = () => {
 
       if (error) {
         console.error('Error searching patients:', error);
-        toast.error('Error al buscar pacientes');
+        toast.error('Error al buscar pacientes: ' + error.message);
         return;
       }
 
+      console.log('Search results:', data);
       setPatients(data || []);
     } catch (error) {
       console.error('Error searching patients:', error);
