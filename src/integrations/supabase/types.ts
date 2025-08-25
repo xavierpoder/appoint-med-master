@@ -332,6 +332,7 @@ export type Database = {
           id: string
           medicamento: string | null
           paciente_id: string
+          paciente_tipo: string | null
           seguimiento: string | null
           seguimiento_completado: boolean | null
           sintoma: string | null
@@ -346,6 +347,7 @@ export type Database = {
           id?: string
           medicamento?: string | null
           paciente_id: string
+          paciente_tipo?: string | null
           seguimiento?: string | null
           seguimiento_completado?: boolean | null
           sintoma?: string | null
@@ -360,21 +362,14 @@ export type Database = {
           id?: string
           medicamento?: string | null
           paciente_id?: string
+          paciente_tipo?: string | null
           seguimiento?: string | null
           seguimiento_completado?: boolean | null
           sintoma?: string | null
           tratamiento?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "historias_clinicas_paciente_id_fkey"
-            columns: ["paciente_id"]
-            isOneToOne: false
-            referencedRelation: "pacientes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       pacientes: {
         Row: {
@@ -618,15 +613,7 @@ export type Database = {
           updated_at: string | null
           whatsapp: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "historias_clinicas_paciente_id_fkey"
-            columns: ["paciente_id"]
-            isOneToOne: false
-            referencedRelation: "pacientes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       patient_view: {
         Row: {

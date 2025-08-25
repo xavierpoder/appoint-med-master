@@ -77,6 +77,7 @@ export const useClinicalHistory = () => {
     tratamiento?: string;
     medicamento?: string;
     seguimiento?: string;
+    paciente_tipo?: 'pacientes' | 'profiles';
   }) => {
     if (!user) {
       toast.error('No hay usuario autenticado');
@@ -85,12 +86,39 @@ export const useClinicalHistory = () => {
 
     setLoading(true);
     try {
+      // Verificar si el paciente existe en la tabla pacientes o profiles
+      let pacienteTipo: 'pacientes' | 'profiles' = 'pacientes';
+      
+      // Primero buscar en pacientes
+      const { data: pacienteData } = await supabase
+        .from('pacientes')
+        .select('id')
+        .eq('id', historyData.paciente_id)
+        .single();
+      
+      if (!pacienteData) {
+        // Si no está en pacientes, debe estar en profiles
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', historyData.paciente_id)
+          .eq('role', 'patient')
+          .single();
+          
+        if (!profileData) {
+          toast.error('Paciente no encontrado');
+          return null;
+        }
+        pacienteTipo = 'profiles';
+      }
+
       const { data, error } = await supabase
         .from('historias_clinicas')
         .insert({
           ...historyData,
           doctor_id: user.id,
-          seguimiento_completado: false
+          seguimiento_completado: false,
+          paciente_tipo: pacienteTipo
         })
         .select()
         .single();
