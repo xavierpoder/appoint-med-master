@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Save, X, UserPlus } from 'lucide-react';
+import { Save, X, UserPlus, Calendar } from 'lucide-react';
 import PatientSearchInput from './PatientSearchInput';
 import ClinicalHistoryForm from './ClinicalHistoryForm';
+import DoctorAppointmentModal from './DoctorAppointmentModal';
 import { usePatients } from '@/hooks/usePatients';
 import { useClinicalHistory } from '@/hooks/useClinicalHistory';
 import { formatWhatsAppNumber, validateWhatsAppNumber, displayPhoneNumber } from '@/utils/phoneFormatter';
@@ -26,6 +27,7 @@ const PatientProfileManager: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [showHistoryForm, setShowHistoryForm] = useState(false);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -168,6 +170,14 @@ const PatientProfileManager: React.FC = () => {
     }
   };
 
+  const handleScheduleAppointment = () => {
+    if (selectedPatient) {
+      setShowAppointmentModal(true);
+    } else {
+      toast.error('Primero seleccione o cree un paciente');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Búsqueda de pacientes */}
@@ -204,9 +214,17 @@ const PatientProfileManager: React.FC = () => {
                     <Button
                       onClick={handleAddHistory}
                       size="sm"
+                      variant="outline"
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
                       Agregar Historia
+                    </Button>
+                    <Button
+                      onClick={handleScheduleAppointment}
+                      size="sm"
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Agendar Cita
                     </Button>
                   </>
                 )}
@@ -308,6 +326,19 @@ const PatientProfileManager: React.FC = () => {
           onSaved={() => {
             setShowHistoryForm(false);
             toast.success('Historia clínica guardada exitosamente');
+          }}
+        />
+      )}
+
+      {/* Modal de agendamiento de cita */}
+      {showAppointmentModal && selectedPatient && (
+        <DoctorAppointmentModal
+          patient={selectedPatient}
+          isOpen={showAppointmentModal}
+          onClose={() => setShowAppointmentModal(false)}
+          onAppointmentCreated={() => {
+            setShowAppointmentModal(false);
+            toast.success('Cita agendada exitosamente');
           }}
         />
       )}
