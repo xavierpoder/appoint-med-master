@@ -221,9 +221,7 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
             </div>
           ) : (
             <div className="grid gap-3">
-              {events
-                .filter((event: any) => viewMode === 'doctor' || !isSlotBooked(event)) // Hide booked slots for patients
-                .map((event: any) => {
+              {events.map((event: any) => {
                 const isBooked = isSlotBooked(event);
                 return (
                   <div 
