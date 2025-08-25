@@ -27,35 +27,58 @@ export const usePatients = () => {
     try {
       console.log('Searching patients with term:', term);
       
-      // First, let's check if we have access to the table
-      const { data: testData, error: testError } = await supabase
-        .from('pacientes')
-        .select('id')
-        .limit(1);
-      
-      if (testError) {
-        console.error('No access to pacientes table:', testError);
-        toast.error('Sin acceso a la tabla de pacientes. Debe ser doctor para buscar pacientes.');
-        return;
-      }
+      // Search in both pacientes table and profiles table (for registered patients)
+      const [pacientesResult, profilesResult] = await Promise.all([
+        // Search in pacientes table
+        supabase
+          .from('pacientes')
+          .select('*')
+          .or(`cedula.ilike.%${term}%,nombre.ilike.%${term}%,apellido.ilike.%${term}%`)
+          .order('created_at', { ascending: false })
+          .limit(10),
+        
+        // Search in profiles table for users with patient role
+        supabase
+          .from('profiles')
+          .select('id, first_name, last_name, id_number, email, phone')
+          .eq('role', 'patient')
+          .or(`id_number.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%`)
+          .order('created_at', { ascending: false })
+          .limit(10)
+      ]);
 
-      console.log('Table access test passed');
+      const pacientesData = pacientesResult.data || [];
+      const profilesData = profilesResult.data || [];
 
-      const { data, error } = await supabase
-        .from('pacientes')
-        .select('*')
-        .or(`cedula.ilike.%${term}%,nombre.ilike.%${term}%,apellido.ilike.%${term}%`)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Convert profiles data to match pacientes structure
+      const convertedProfiles = profilesData.map(profile => ({
+        id: profile.id,
+        nombre: profile.first_name || '',
+        apellido: profile.last_name || '',
+        cedula: profile.id_number || '',
+        correo: profile.email || '',
+        whatsapp: profile.phone || '',
+        created_at: new Date().toISOString(), // Use current time as fallback
+        source: 'profiles' // Add source identifier
+      }));
 
-      if (error) {
-        console.error('Error searching patients:', error);
-        toast.error('Error al buscar pacientes: ' + error.message);
-        return;
-      }
+      // Combine results, removing duplicates by cedula if both exist
+      const allPatients = [...pacientesData.map(p => ({ ...p, source: 'pacientes' })), ...convertedProfiles];
+      const uniquePatients = allPatients.reduce((acc, patient) => {
+        const existingIndex = acc.findIndex(p => p.cedula && patient.cedula && p.cedula === patient.cedula);
+        if (existingIndex === -1) {
+          acc.push(patient);
+        } else {
+          // Prefer pacientes table data over profiles
+          if (patient.source === 'pacientes') {
+            acc[existingIndex] = patient;
+          }
+        }
+        return acc;
+      }, [] as any[]);
 
-      console.log('Search results:', data);
-      setPatients(data || []);
+      console.log('Combined search results:', uniquePatients);
+      setPatients(uniquePatients);
     } catch (error) {
       console.error('Error searching patients:', error);
       toast.error('Error al buscar pacientes');
