@@ -108,8 +108,8 @@ export const useCustomCalendar = () => {
     
     setLoading(true);
     try {
-      const startOfDay = `${date}T00:00:00.000Z`;
-      const endOfDay = `${date}T23:59:59.999Z`;
+      const startOfDay = `${date}T00:00:00Z`;
+      const endOfDay = `${date}T23:59:59Z`;
 
       console.log('Fetching appointments for doctor:', targetDoctorId, 'date range:', startOfDay, 'to', endOfDay);
 
