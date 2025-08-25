@@ -175,229 +175,286 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <Stethoscope className="h-12 w-12 text-blue-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">Clínica Master</h1>
-          <p className="text-gray-600 mt-2">Sistema de Gestión de Citas Médicas</p>
+      <div className="text-center mb-8">
+        <div className="flex items-center justify-center mb-4">
+          <Stethoscope className="h-12 w-12 text-blue-600" />
         </div>
+        <h1 className="text-3xl font-bold text-gray-900">Clínica Master v1.1</h1>
+        <p className="text-gray-600 mt-2">Sistema de Gestión de Citas Médicas</p>
+      </div>
 
-        <Card>
-          {isPasswordRecovery ? (
-            // Password Recovery Form - Funciona para doctores y pacientes
-            <>
-              <CardHeader>
-                <CardTitle>Establecer Nueva Contraseña</CardTitle>
-                <CardDescription>
-                  Ingresa tu nueva contraseña para completar la recuperación. Esta funcionalidad está disponible tanto para doctores como para pacientes.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-blue-50 p-3 rounded-lg mb-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Información:</strong> Estás estableciendo una nueva contraseña para tu cuenta. Esta contraseña se aplicará tanto si eres doctor como paciente.
-                  </p>
+      {isPasswordRecovery ? (
+        // Password Recovery Form
+        <div className="w-full max-w-md">
+          <Card>
+            <CardHeader>
+              <CardTitle>Establecer Nueva Contraseña</CardTitle>
+              <CardDescription>
+                Ingresa tu nueva contraseña para completar la recuperación.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div>
+                  <Input
+                    type="password"
+                    placeholder="Nueva contraseña (mínimo 6 caracteres)"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
                 </div>
-                <form onSubmit={handlePasswordReset} className="space-y-4">
-                  <div>
-                    <Input
-                      type="password"
-                      placeholder="Nueva contraseña (mínimo 6 caracteres)"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      type="password"
-                      placeholder="Confirmar nueva contraseña"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                  {newPassword && confirmPassword && newPassword !== confirmPassword && (
-                    <p className="text-sm text-red-600">Las contraseñas no coinciden</p>
-                  )}
-                  <Button type="submit" className="w-full" disabled={loading || (newPassword !== confirmPassword)}>
-                    {loading ? 'Actualizando contraseña...' : 'Actualizar Contraseña'}
-                  </Button>
-                  <div className="text-center">
-                    <Button 
-                      type="button" 
-                      variant="link" 
-                      onClick={() => navigate('/auth')}
-                      className="text-sm"
-                    >
-                      Volver al inicio de sesión
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </>
-          ) : (
-            // Normal Login/Signup Tabs
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-              <TabsTrigger value="signup">Registrarse</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login">
-              <CardHeader>
-                <CardTitle>Iniciar Sesión</CardTitle>
-                <CardDescription>
-                  Ingresa tus credenciales para acceder al sistema
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Continuar con Google
+                <div>
+                  <Input
+                    type="password"
+                    placeholder="Confirmar nueva contraseña"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+                {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-sm text-red-600">Las contraseñas no coinciden</p>
+                )}
+                <Button type="submit" className="w-full" disabled={loading || (newPassword !== confirmPassword)}>
+                  {loading ? 'Actualizando contraseña...' : 'Actualizar Contraseña'}
                 </Button>
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">O</span>
-                  </div>
-                </div>
-
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <Input
-                      type="email"
-                      placeholder="Correo electrónico"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      type="password"
-                      placeholder="Contraseña"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                <div className="text-center">
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    onClick={() => navigate('/auth')}
+                    className="text-sm"
+                  >
+                    Volver al inicio de sesión
                   </Button>
-                  <div className="text-center mt-4">
-                    <a href="#" onClick={handleForgotPassword} className="text-sm text-blue-600 hover:underline">
-                      ¿Olvidaste tu contraseña?
-                    </a>
-                  </div>
-                </form>
-              </CardContent>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <CardHeader>
-                <CardTitle>Crear Cuenta</CardTitle>
-                <CardDescription>
-                  Completa el formulario para crear tu cuenta
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Registrarse con Google
-                </Button>
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">O</span>
-                  </div>
                 </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        // Two-column layout for doctors and patients
+        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Doctor Login Section */}
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-2">
+                <Stethoscope className="h-5 w-5 text-blue-600" />
+                Soy Doctor
+              </CardTitle>
+              <CardDescription>
+                Solo iniciar sesión - Los doctores son creados por el administrador
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                variant="outline"
+                className="w-full"
+              >
+                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continuar con Google
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">O</span>
+                </div>
+              </div>
 
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      placeholder="Nombre"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                    />
-                    <Input
-                      placeholder="Apellido"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
                   <Input
                     type="email"
                     placeholder="Correo electrónico"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
                     required
                   />
-                  
-                  <Input
-                    type="tel"
-                    placeholder="Número de teléfono"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                  
+                </div>
+                <div>
                   <Input
                     type="password"
                     placeholder="Contraseña"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
                     required
                   />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                </Button>
+                <div className="text-center mt-4">
+                  <a href="#" onClick={handleForgotPassword} className="text-sm text-blue-600 hover:underline">
+                    ¿Olvidaste tu contraseña?
+                  </a>
+                </div>
+              </form>
+
+              <div className="bg-blue-50 p-3 rounded-lg text-sm">
+                <p className="text-blue-800">
+                  <strong>Nota para Doctores:</strong> Si no tienes cuenta, contacta al administrador del sistema para que te registre.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Patient Registration/Login Section */}
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Acceso para Pacientes</CardTitle>
+              <CardDescription>
+                Inicia sesión o regístrate como paciente
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="patient-login" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="patient-login">Iniciar Sesión</TabsTrigger>
+                  <TabsTrigger value="patient-signup">Registrarse</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="patient-login" className="space-y-4">
+                  <Button
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continuar con Google
+                  </Button>
                   
-                  {/* Rol fijo como paciente - los doctores son creados por el admin */}
-                  <input type="hidden" value="patient" />
-                  <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                    <p><strong>Nota:</strong> El registro está disponible únicamente para pacientes. Los doctores son registrados por el administrador del sistema.</p>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">O</span>
+                    </div>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                      <Input
+                        type="email"
+                        placeholder="Correo electrónico"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        type="password"
+                        placeholder="Contraseña"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                    </Button>
+                    <div className="text-center mt-4">
+                      <a href="#" onClick={handleForgotPassword} className="text-sm text-blue-600 hover:underline">
+                        ¿Olvidaste tu contraseña?
+                      </a>
+                    </div>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="patient-signup" className="space-y-4">
+                  <Button
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Registrarse con Google
                   </Button>
-                </form>
-              </CardContent>
-            </TabsContent>
-          </Tabs>
-          )}
-        </Card>
-      </div>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">O</span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        placeholder="Nombre"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required
+                      />
+                      <Input
+                        placeholder="Apellido"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    <Input
+                      type="email"
+                      placeholder="Correo electrónico"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      required
+                    />
+                    
+                    <Input
+                      type="tel"
+                      placeholder="Número de teléfono"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                    
+                    <Input
+                      type="password"
+                      placeholder="Contraseña"
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      required
+                    />
+
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? 'Creando cuenta...' : 'Crear Cuenta de Paciente'}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
