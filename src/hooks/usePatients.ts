@@ -37,7 +37,7 @@ export const usePatients = () => {
           .order('created_at', { ascending: false })
           .limit(10),
         
-        // Search in profiles table for users with patient role
+        // Search in profiles table for users with patient role only
         supabase
           .from('profiles')
           .select('id, first_name, last_name, id_number, email, phone')
