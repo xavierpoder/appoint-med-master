@@ -88,14 +88,27 @@ const CustomCalendar: React.FC<CustomCalendarProps> = ({
   };
 
   const isSlotBooked = (slot: any) => {
+    console.log('Checking slot:', slot.startTime, 'Appointments available:', appointments.length);
+    console.log('All appointments:', appointments.map(a => ({ time: a.time, startTime: a.startTime })));
+    
     const isBooked = appointments.some(appointment => {
       const appointmentTime = new Date(appointment.time);
       const slotStart = new Date(slot.start);
-      console.log('Comparing appointment:', appointmentTime.toISOString(), 'with slot:', slotStart.toISOString()); // Debug log
-      // Check if appointment time matches the slot start time exactly
-      return appointmentTime.getTime() === slotStart.getTime();
+      console.log('Comparing appointment:', appointmentTime.toISOString(), 'with slot:', slotStart.toISOString());
+      
+      // Compare using hour and minute only, ignore seconds and milliseconds
+      const appointmentHour = appointmentTime.getUTCHours();
+      const appointmentMinute = appointmentTime.getUTCMinutes();
+      const slotHour = slotStart.getUTCHours();
+      const slotMinute = slotStart.getUTCMinutes();
+      
+      console.log(`Appointment time: ${appointmentHour}:${appointmentMinute}, Slot time: ${slotHour}:${slotMinute}`);
+      
+      const matches = appointmentHour === slotHour && appointmentMinute === slotMinute;
+      console.log('Time matches:', matches);
+      return matches;
     });
-    console.log('Slot booked status:', isBooked, 'for slot:', slot.startTime); // Debug log
+    console.log('Slot booked status:', isBooked, 'for slot:', slot.startTime);
     return isBooked;
   };
 
