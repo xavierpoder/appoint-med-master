@@ -180,8 +180,10 @@ const DoctorAppointmentModal: React.FC<DoctorAppointmentModalProps> = ({
       if (existingProfile) {
         patientId = existingProfile.id;
       } else {
-        // Crear nuevo paciente usando signUp
-        const tempEmail = `${patient.cedula}@temp.medicalapp.com`;
+        // Sanitizar la cédula para email válido
+        const sanitizedCedula = patient.cedula.replace(/[^a-zA-Z0-9]/g, '');
+        const tempEmail = `paciente${sanitizedCedula}@temp.medicalapp.com`;
+        
         const { data: newUser, error: authError } = await supabase.auth.signUp({
           email: tempEmail,
           password: Math.random().toString(36).slice(-8),
@@ -277,10 +279,13 @@ const DoctorAppointmentModal: React.FC<DoctorAppointmentModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="appointment-dialog-description">
         <DialogHeader>
           <DialogTitle>Agendar Cita para {patient.nombre} {patient.apellido}</DialogTitle>
         </DialogHeader>
+        <div id="appointment-dialog-description" className="sr-only">
+          Formulario para agendar una nueva cita médica
+        </div>
 
         <div className="space-y-6">
           {/* Información del paciente */}
