@@ -20,6 +20,9 @@ const Auth = () => {
   // Check if this is a password recovery flow
   const isPasswordRecovery = searchParams.get('type') === 'recovery';
 
+  // User type selection
+  const [userType, setUserType] = useState<'doctor' | 'patient' | null>(null);
+
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -174,18 +177,19 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center mb-4">
-          <Stethoscope className="h-12 w-12 text-blue-600" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      {/* Header */}
+      <div className="text-center mb-12 animate-fade-in">
+        <div className="flex items-center justify-center mb-6">
+          <Stethoscope className="h-16 w-16 text-blue-600" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Clínica Master v1.1</h1>
-        <p className="text-gray-600 mt-2">Sistema de Gestión de Citas Médicas</p>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Clínica Master v1.1</h1>
+        <p className="text-gray-600 text-lg">Sistema de Gestión de Citas Médicas</p>
       </div>
 
       {isPasswordRecovery ? (
         // Password Recovery Form
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md animate-scale-in">
           <Card>
             <CardHeader>
               <CardTitle>Establecer Nueva Contraseña</CardTitle>
@@ -235,28 +239,78 @@ const Auth = () => {
             </CardContent>
           </Card>
         </div>
-      ) : (
-        // Two-column layout for doctors and patients
-        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Doctor Login Section */}
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2">
-                <Stethoscope className="h-5 w-5 text-blue-600" />
-                Soy Doctor
-              </CardTitle>
-              <CardDescription>
-                Solo iniciar sesión - Los doctores son creados por el administrador
+      ) : userType === null ? (
+        // User Type Selection
+        <div className="w-full max-w-lg animate-scale-in">
+          <Card className="border-0 shadow-xl">
+            <CardHeader className="text-center pb-8">
+              <CardTitle className="text-2xl">¿Cómo deseas acceder?</CardTitle>
+              <CardDescription className="text-base">
+                Selecciona tu tipo de usuario para continuar
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Patient Button - Destacado */}
+              <Button
+                onClick={() => setUserType('patient')}
+                className="w-full h-20 text-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover-scale"
+                size="lg"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-2xl">👥</span>
+                  <span className="font-semibold">Soy Paciente</span>
+                </div>
+              </Button>
+
+              {/* Doctor Button - Secundario */}
+              <Button
+                onClick={() => setUserType('doctor')}
+                variant="outline"
+                className="w-full h-16 text-lg border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 hover-scale"
+                size="lg"
+              >
+                <div className="flex items-center gap-3">
+                  <Stethoscope className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium">Soy Doctor</span>
+                </div>
+              </Button>
+
+              <div className="text-center mt-6">
+                <p className="text-sm text-gray-500">
+                  Los doctores son registrados por el administrador del sistema
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : userType === 'doctor' ? (
+        // Doctor Login Form
+        <div className="w-full max-w-md animate-fade-in">
+          <Card>
+            <CardHeader className="text-center">
+              <Button
+                variant="ghost"
+                className="mb-4 text-sm text-gray-500 hover:text-gray-700"
+                onClick={() => setUserType(null)}
+              >
+                ← Volver a selección
+              </Button>
+              <CardTitle className="flex items-center justify-center gap-2">
+                <Stethoscope className="h-5 w-5 text-blue-600" />
+                Acceso para Doctores
+              </CardTitle>
+              <CardDescription>
+                Solo iniciar sesión
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
               <Button
                 onClick={handleGoogleSignIn}
                 disabled={loading}
                 variant="outline"
-                className="w-full"
+                className="w-full h-12"
               >
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                   <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -282,6 +336,7 @@ const Auth = () => {
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     required
+                    className="h-12"
                   />
                 </div>
                 <div>
@@ -291,49 +346,59 @@ const Auth = () => {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     required
+                    className="h-12"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full h-12" disabled={loading}>
                   {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                 </Button>
-                <div className="text-center mt-4">
+                <div className="text-center">
                   <a href="#" onClick={handleForgotPassword} className="text-sm text-blue-600 hover:underline">
                     ¿Olvidaste tu contraseña?
                   </a>
                 </div>
               </form>
 
-              <div className="bg-blue-50 p-3 rounded-lg text-sm">
+              <div className="bg-blue-50 p-4 rounded-lg text-sm border-l-4 border-blue-400">
                 <p className="text-blue-800">
-                  <strong>Nota para Doctores:</strong> Si no tienes cuenta, contacta al administrador del sistema para que te registre.
+                  <strong>Nota:</strong> Si no tienes cuenta, contacta al administrador del sistema.
                 </p>
               </div>
             </CardContent>
           </Card>
-
-          {/* Patient Registration/Login Section */}
+        </div>
+      ) : (
+        // Patient Login/Signup Form
+        <div className="w-full max-w-md animate-fade-in">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle>Acceso para Pacientes</CardTitle>
+              <Button
+                variant="ghost"
+                className="mb-4 text-sm text-gray-500 hover:text-gray-700"
+                onClick={() => setUserType(null)}
+              >
+                ← Volver a selección
+              </Button>
+              <CardTitle className="text-blue-600">Acceso para Pacientes</CardTitle>
               <CardDescription>
-                Inicia sesión o regístrate como paciente
+                Inicia sesión o crea tu cuenta
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="patient-login" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="patient-login">Iniciar Sesión</TabsTrigger>
                   <TabsTrigger value="patient-signup">Registrarse</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="patient-login" className="space-y-4">
+                <TabsContent value="patient-login" className="space-y-6">
                   <Button
                     onClick={handleGoogleSignIn}
                     disabled={loading}
                     variant="outline"
-                    className="w-full"
+                    className="w-full h-12"
                   >
-                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                       <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                       <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -359,6 +424,7 @@ const Auth = () => {
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         required
+                        className="h-12"
                       />
                     </div>
                     <div>
@@ -368,12 +434,13 @@ const Auth = () => {
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
+                        className="h-12"
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full h-12" disabled={loading}>
                       {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                     </Button>
-                    <div className="text-center mt-4">
+                    <div className="text-center">
                       <a href="#" onClick={handleForgotPassword} className="text-sm text-blue-600 hover:underline">
                         ¿Olvidaste tu contraseña?
                       </a>
@@ -381,14 +448,14 @@ const Auth = () => {
                   </form>
                 </TabsContent>
 
-                <TabsContent value="patient-signup" className="space-y-4">
+                <TabsContent value="patient-signup" className="space-y-6">
                   <Button
                     onClick={handleGoogleSignIn}
                     disabled={loading}
                     variant="outline"
-                    className="w-full"
+                    className="w-full h-12"
                   >
-                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                       <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                       <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -413,12 +480,14 @@ const Auth = () => {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         required
+                        className="h-12"
                       />
                       <Input
                         placeholder="Apellido"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         required
+                        className="h-12"
                       />
                     </div>
                     
@@ -428,6 +497,7 @@ const Auth = () => {
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
                       required
+                      className="h-12"
                     />
                     
                     <Input
@@ -435,6 +505,7 @@ const Auth = () => {
                       placeholder="Número de teléfono"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                      className="h-12"
                     />
                     
                     <Input
@@ -443,10 +514,11 @@ const Auth = () => {
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
                       required
+                      className="h-12"
                     />
 
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? 'Creando cuenta...' : 'Crear Cuenta de Paciente'}
+                    <Button type="submit" className="w-full h-12" disabled={loading}>
+                      {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
                     </Button>
                   </form>
                 </TabsContent>
