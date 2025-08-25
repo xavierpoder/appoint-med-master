@@ -118,7 +118,6 @@ export const useCustomCalendar = () => {
         .select(`
           id,
           time,
-          patient_id,
           status
         `)
         .eq('doctor_id', targetDoctorId)
@@ -133,64 +132,15 @@ export const useCustomCalendar = () => {
 
       console.log('Raw appointments data from DB:', data);
 
-      // Obtener los IDs únicos de pacientes
-      const patientIds = data.map(appointment => appointment.patient_id).filter(id => id);
-      console.log('Patient IDs to fetch:', patientIds);
-      
-      // Obtener los perfiles de los pacientes
-      let profiles = [];
-      if (patientIds.length > 0) {
-        console.log('Fetching profiles for patient IDs:', patientIds);
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('patient_view')
-          .select('id, first_name, last_name, phone, email')
-          .in('id', patientIds);
-
-        console.log('Profiles query result:', { profilesData, profilesError });
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        } else {
-          profiles = profilesData || [];
-        }
-      }
-
-      console.log('Final profiles data:', profiles);
-
+      // Para pacientes, solo necesitamos saber qué horarios están ocupados
+      // Para doctores, necesitamos la información completa
       const formattedAppointments = data.map((appointment: any) => {
-        const profile = profiles.find((p: any) => p.id === appointment.patient_id);
-        
-        console.log('Processing appointment:', appointment.id, 'patient_id:', appointment.patient_id, 'found profile:', profile);
-        
-        if (!profile) {
-          console.warn('No profile found for patient_id:', appointment.patient_id);
-          return {
-            id: appointment.id,
-            time: appointment.time,
-            patientName: 'Paciente sin perfil',
-            patientPhone: '',
-            patientEmail: '',
-            patient_id: appointment.patient_id,
-            startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: false
-            }),
-            endTime: new Date(new Date(appointment.time).getTime() + 60 * 60 * 1000).toLocaleTimeString('es-ES', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: false
-            })
-          };
-        }
-        
         return {
           id: appointment.id,
           time: appointment.time,
-          patientName: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
-          patientPhone: profile.phone || '',
-          patientEmail: profile.email || '',
-          patient_id: appointment.patient_id,
+          patientName: 'Paciente', // Genérico para pacientes
+          patientPhone: '',
+          patientEmail: '',
           startTime: new Date(appointment.time).toLocaleTimeString('es-ES', { 
             hour: '2-digit', 
             minute: '2-digit',
