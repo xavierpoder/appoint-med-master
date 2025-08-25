@@ -37,29 +37,66 @@ export const useClinicalHistory = () => {
   const getHistoriesByPatient = async (patientId: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Primero obtener las historias clínicas sin joins
+      const { data: historiesData, error: historiesError } = await supabase
         .from('historias_clinicas')
-        .select(`
-          *,
-          pacientes (
-            id,
-            nombre,
-            apellido,
-            cedula,
-            correo,
-            whatsapp
-          )
-        `)
+        .select('*')
         .eq('paciente_id', patientId)
         .order('fecha_ingreso', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching clinical histories:', error);
+      if (historiesError) {
+        console.error('Error fetching clinical histories:', historiesError);
         toast.error('Error al cargar historias clínicas');
         return [];
       }
 
-      return data || [];
+      if (!historiesData || historiesData.length === 0) {
+        return [];
+      }
+
+      // Para cada historia, obtener los datos del paciente según el tipo
+      const historiesWithPatient = await Promise.all(
+        historiesData.map(async (history) => {
+          let pacienteData = null;
+          
+          if (history.paciente_tipo === 'profiles') {
+            // Buscar en la tabla profiles
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name, id_number, email, phone')
+              .eq('id', history.paciente_id)
+              .eq('role', 'patient')
+              .single();
+              
+            if (profileData) {
+              pacienteData = {
+                id: profileData.id,
+                nombre: profileData.first_name,
+                apellido: profileData.last_name,
+                cedula: profileData.id_number,
+                correo: profileData.email,
+                whatsapp: profileData.phone
+              };
+            }
+          } else {
+            // Buscar en la tabla pacientes (default)
+            const { data: pacienteDataDb } = await supabase
+              .from('pacientes')
+              .select('id, nombre, apellido, cedula, correo, whatsapp')
+              .eq('id', history.paciente_id)
+              .single();
+              
+            pacienteData = pacienteDataDb;
+          }
+
+          return {
+            ...history,
+            paciente: pacienteData
+          };
+        })
+      );
+
+      return historiesWithPatient;
     } catch (error) {
       console.error('Error fetching clinical histories:', error);
       toast.error('Error al cargar historias clínicas');
