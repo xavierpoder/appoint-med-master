@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Stethoscope, Users, UserCheck, Calendar, Shield, Clock } from 'lucide-react';
-import { WhatsAppTest } from '@/components/WhatsAppTest';
+
 const Index = () => {
   const navigate = useNavigate();
   const {
@@ -136,17 +136,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* WhatsApp Test Section */}
-        <div className="bg-gray-50 py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-2xl mx-auto">
-              <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">
-                Prueba de WhatsApp
-              </h2>
-              <WhatsAppTest />
-            </div>
-          </div>
-        </div>
       </div>;
   }
 
